@@ -251,11 +251,11 @@ Any work intentionally submitted for inclusion in the RFCs process shall be
 licensed under the MIT license.
 
 ### The Contributor License Agreement
-As part of your first contribution to this repository, you need to accept
-the Contributor License Agreement. You will automatically be asked to sign 
-the CLA when you make your first pull request. 
+As part of your first contribution to this repository, you need to accept the 
+Contributor License Agreement. You will automatically be asked to sign the CLA 
+when you make your first pull request. 
 
-The CLA you sign applies to all repositories associated with the Luna 
-project ([Luna](https://github.com/luna/luna-rfcs), 
-[Luna Studio](https://github.com/luna/luna-studio), etc), so you will only 
-have to sign it once at the start of your contributions. 
+The CLA you sign applies to all repositories associated with the Luna project 
+([Luna](https://github.com/luna/luna-rfcs), 
+[Luna Studio](https://github.com/luna/luna-studio), etc), so you will only have 
+to sign it once at the start of your contributions. 
