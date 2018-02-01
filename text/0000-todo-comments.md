@@ -171,8 +171,6 @@ tools. This would impact the usability of documentation comments for actually
 documenting code. 
 
 # Unresolved Questions
-This section should address any unresolved questions you have with the RFC at 
-the current time. Some examples include:
 
 - How do we ensure a _truly_ equivalent conversion between textual and visual
   syntaxes?
