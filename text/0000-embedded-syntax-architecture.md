@@ -41,6 +41,8 @@ the Haskell FFI allows for some integration with existing libraries, the ESA
 goes beyond that to allow integration of any language for which someone writes
 an ESA plugin. 
 
+Remote or local.
+
 # Guide-Level Explanation
 Explain the proposal as if teaching the feature(s) to a newcomer to Luna. This
 should usually include:
