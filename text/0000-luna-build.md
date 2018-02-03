@@ -36,24 +36,126 @@ this, it is likely that Luna will find such duties taken over by a fractured
 mess of external tools, robbing the community of the best-possible experience.
 
 # Guide-Level Explanation
-Explain the proposal as if teaching the feature(s) to a newcomer to Luna. This
-should usually include:
+Luna provides comprehensive functionality for managing projects and packages 
+using the integrated tool called Luna build! Today, we're going to look at a
+basic example of how you can create your own project in a sandbox and install
+a package that you want to use during development.
 
-- Introduction of any new named concepts.
-- Explaining the feature using motivating examples.
-- Explaining how Luna programmers should _think_ about the feature, and how it
-  should impact the way they use the language. This should aim to make the 
-  impact of the feature as concrete as possible.
-- If applicable, provide sample error messages, deprecation warnings, migration
-  guidance, etc.
-- If applicable, describe the differences in teaching this to new Luna
-  programmers and experienced Luna programmers.
+So, first up we want to create a sandbox for our project. To do this we execute 
+`luna sandbox init .`. This creates a new sandbox using the current compiler 
+version in the specified directory (here we use `.`, the current working 
+directory). It's as easy as that! We've made a sandbox. 
 
-For implementation-oriented RFCs (e.g. compiler internals or luna-studio 
-internals), this section should focus on how contributors to the project should
-think about the change, and give examples of its concrete impact. For 
-policy-level RFCs, this section should provide an example-driven introduction to
-the policy, and explain its impact in concrete terms.
+Sandboxes in Luna act like an isolated place where you can work. From within the
+sandbox you can't access the global package database, which means that you can
+keep your build separate from the main system install of Luna. 
+
+Next up, we wanted to create a project. Let's call it 'test-project'. To do 
+this, we can again use Luna Build, by executing the command 
+`luna project new test-project .`. This, as you might expect, creates a new 
+project for you named test. If you `ls` on your directory you'll see a new 
+folder called `test-project`. Inside that folder will be the following 
+structure: 
+
+```
+test-project/
+ ├─ app/
+ ├─ dist/ 
+ ├─ src/
+ ├─ test/
+ └─ test-project.toml
+```
+
+All of these directories do exactly what they sound like, so we're going to look
+at the nice and important `test-project.toml`. This file is where you specify 
+all of the information about building your project. It uses the 
+[TOML](https://github.com/toml-lang/toml) syntax, as you might've guessed from 
+the extension. If you open it in your favourite editor, you'll see that it's 
+pretty empty:
+
+```toml
+[package]
+name = "test-project"
+version = ""
+author = ""
+```
+
+We want to build a basic library, so we're going to fill it in! We can start by
+filling out the package metadata and adding some of our own until we have 
+something looking like the below:
+
+```toml
+[package]
+name = "test-project"
+version = "0.0.1"
+synopsis = "An example package."
+author = "Joe Bloggs"
+license = "BSD-3"
+
+[compiler]
+build-type = "library"
+luna-version = "2.0"
+
+[build-artefacts]
+
+[[library]]
+name = "Foo.lib"
+exposed-modules = ["TestProject.Foo"]
+source-dirs = ["src/"]
+dependencies = []
+luna-options = ["-O3"]
+```
+
+Now we've done that, let's create a source file corresponding to 
+`TestProject.Foo`. Head into the source directory and create a file called 
+`Foo.luna`, within which we can write a function called `hello`. Nice. If we 
+want to build our library we can now just execute `luna build` and we'll be able 
+to watch as Luna builds our library with a single function. 
+
+So, now perhaps we want to make `hello` do something more fancy. Maybe we want 
+to make it fire some missiles, but we don't know how! Fortunately, someone with
+a sense of humour has created the package `acme-missiles`, and has hosted it
+with prebuilt binaries on the central Luna repository. That's what we're going 
+to use, so we can install it by typing `luna install acme-missiles` inside our
+sandbox. This will download and install the library and now we can use it. 
+
+We add the expression to `import AcmeMissiles` to our `Foo.luna` and add the 
+line `AcmeMissiles.fire` and save the file. If you try to build now, you may 
+notice that it _doesn't work_. This is because we've forgotten one important 
+step. We need to add AcmeMissiles to our project dependencies. We can do this by 
+modifying the library dependencies like so: `dependencies = ["acme-missiles"]`. 
+Now if we try to build everything will work. 
+
+You might also be pleased to know that if we added the dependency to the project
+configuration first, and then ran build, it would've automatically downloaded
+and installed the package for us. 
+
+Now let's say we've added the missile launch to our code, but we want to be sure
+that we're firing exactly the right type and number of missiles in our code. We 
+might want to add a test! We can do this by creating a new section in our 
+`test-project.toml`. It should look like this:
+
+```toml
+[[test-suite]]
+name = "Foo-test"
+type = "exitcode-stio"
+main-function = "Test.luna"
+source-dirs = ["test/"]
+dependencies = ["acme-missiles"]
+luna-options = ["-O0"]
+```
+
+Now we can head to our `test/` directory and create our `Test.luna` file to run 
+whatever tests we want. You can use whatever test suite you want in here, but
+when you run `luna test`, Luna Build will run your tests, printing any output
+that you've included, and then return an exit code to `stdio` or `stderr` 
+(that's what the `exitcode-sdtio` bit means, but there are other kinds of test
+suite such as `fileoutput` that writes test results to a file instead).
+
+There you go! You now know the basics of our fantastic Luna Build tool! If 
+you're wondering about all the other cool things it can do and options that it
+has, just head to the [Luna Book](https://luna-lang.gitbooks.io/docs/) and read
+the section on Luna Build.
 
 # Reference-Level Explanation
 This RFC proposes a multi-pronged extension to the command-line `luna` interface
@@ -95,7 +197,11 @@ management of Luna projects. These are as follows:
   directory or, if specified, in the directory specified by `PATH`. This project
   will contain the folder structure specified in 
   [Project Structure](#project-structure).
-- `build`: This will build the project as specified in the `project-name.toml`.
+- `build [ARTEFACT]`: This will build the project artefact as specified in the 
+  `project-name.toml`. If no artefact is specified it will build `application`.
+  If there is no application it will build all the listed libraries. If the 
+  project is missing any of its specified dependencies, they will be downloaded 
+  and installed as part of this build step. 
 - `test`: This will run all tests contained within the `test/` directory.
 - `clean`: This command will remove any built artefacts from the project, 
   including documentation and binaries. 
@@ -153,6 +259,13 @@ below:
 - `build-artefacts`: A list of build artefacts from the project. This may 
   include artefacts such as `library`, `executable` and `test-suite`. Each of 
   these may contain a selection of the following sub-fields:
+  + `name`: The name of the build artefact.
+  + `exposed-modules`: The modules exposed by the library. Only valid for 
+    libraries.
+  + `main-function`: The file in which to find for a main function. Only 
+    specified for executables or test-suites.
+  + `type`: Specifies the kind of test-suite to run (e.g. `exitcode-stdio`). 
+    Only valid for test suites. 
   + `source-dirs`: Source directories to search for this build artefact's 
     sources.
   + `dependencies`: A list of dependencies, specifying both package/tool name 
@@ -247,3 +360,4 @@ as a whole.
   is much easier to parse with a much less complex specification.
 - How much of this functionality can we inherit from existing tools (e.g. Stack
   or Cabal). It would be worth talking to Michael Snoyman about this. 
+- What algorithm and system should we use for dependency resolution?
