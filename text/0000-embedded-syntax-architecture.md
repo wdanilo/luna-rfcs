@@ -41,75 +41,82 @@ the Haskell FFI allows for some integration with existing libraries, the ESA
 goes beyond that to allow integration of any language for which someone writes
 an ESA plugin. 
 
-Remote or local.
-
 # Guide-Level Explanation
-Explain the proposal as if teaching the feature(s) to a newcomer to Luna. This
-should usually include:
-
-- Introduction of any new named concepts.
-- Explaining the feature using motivating examples.
-- Explaining how Luna programmers should _think_ about the feature, and how it
-  should impact the way they use the language. This should aim to make the 
-  impact of the feature as concrete as possible.
-- If applicable, provide sample error messages, deprecation warnings, migration
-  guidance, etc.
-- If applicable, describe the differences in teaching this to new Luna
-  programmers and experienced Luna programmers.
-
-For implementation-oriented RFCs (e.g. compiler internals or luna-studio 
-internals), this section should focus on how contributors to the project should
-think about the change, and give examples of its concrete impact. For 
-policy-level RFCs, this section should provide an example-driven introduction to
-the policy, and explain its impact in concrete terms.
 
 # Reference-Level Explanation
-This is the technical portion of the RFC and should be written as a 
-specification of the new feature(s). It should provide a syntax-agnostic 
-description of the planned feature, and include sufficient detail to address the
-following points:
+This RFC introduces the concept of a 'Syntax Plugin' to the Luna ecosystem. Each
+syntax plugin provides the following capabilities to the Luna ecosystem when in
+use:
 
-- Impact on existing feature(s) or functions.
-- Interactions with other features.
-- A clear description of how it should be implemented, though this need not 
-  contain precise references to internals where relevant.
-- An explanation of all corner cases for the feature, with examples.
+- Users are able to natively write code from the language in question into their
+  Luna projects.
+- See this code in-line as if it is a part of the project, and pass data between
+  Luna and the embedded code as if it was Luna code. 
 
-This section should be written in comprehensive and concise language, and may
-include where relevant: 
+A syntax plugin is a piece of software that plugs into the Luna toolchain, and
+provides the following functionality:
 
-- The grammar and semantics of any new constructs. 
-- The types and semantics of any new library interfaces.
+- Marshalling of data between the embedded language and Luna via the use of the
+  to-be-specified ESA API. 
+- Establishing the conventions for calling into and returning from the embedded 
+  language.
+- Marshal the embedded language toolchain, whether that be embedded locally or
+  remotely (e.g. running heavyweight DL computations in C++ on a remote 
+  cluster). 
+- Handle static compilation for linking of any build artefacts if possible. 
+
+These plugins would require access to the appropriate toolchain, and hence place 
+no burden on Luna itself to support the language. The only things that Luna 
+itself must support is the API and tools for marshalling data and calling into
+and out of the foreign code. This API should include tools to allow for users
+to marshal data in cases where the ESA plugin falls short, but ideally we want
+to significantly minimise this friction. 
+
+These ESA plugins would also be able to be used in the static binary. Each ESA
+language would have to take a different approach for this, as something like
+Python would need the runtime available and operate via the C-FFI, while 
+something like C++ would produce a static object for linking into the binary.
+
+The exact shape this design should take is very much up in the air for the 
+moment, but I feel it would be an invaluable addition to the Luna ecosystem. 
 
 ## Textual Syntax Explanation
-This should explain how the new feature interacts with the textual syntax 
-representation of Luna. It should touch on the same categories as above.
+From the perspective of the textual syntax, the ESA plugin consists only of a 
+block scope, potentially introduced using the metaprogramming system (as this
+can be easily implemented using quasi-quotation). This block would then contain
+the foreign code, and indications as to how to marshal in and out of it. 
+
+The following is a very sketchy example:
+
+```
+embedForeign CPP :: Vec n Float -> Vec m Float -> OwnedPtr (Matrix n m Float):
+	
+	std::unique_ptr<Matrix<n, m, Float>> processInputs (
+		) {
+		// Do the stuff. 
+
+		frob(a, b);
+	}
+
+	// Another function not part of the public API of the block, but still has
+	// been implemented locally.
+	float frob (float, float) {
+		// Do the thing.
+	}
+```
 
 ## Graph Syntax Explanation
-This should explain how the new feature interacts with the graphical syntax for
-Luna. It should also touch on the same categories as above.
+In terms of the graphical syntax, such a block would be seen on the graph as a
+single node. The node could either be displayed in its compact view, or, if 
+chosen by the user, could be expanded into a larger view to allow for direct 
+editing of the embedded code on the graph. 
 
 # Drawbacks
-A description of why we _should not_ do this. Write this section as if you are
-picking apart your proposal.
 
 # Rationale and Alternatives
-A few paragraphs addressing the rationale for why this design is the best 
-possible design for this feature in its design space. It should address how the
-proposed design resolves the motivating factors. 
-
-A few paragraphs addressing alternative designs for the feature, and the reasons
-for not choosing them.
-
-A paragraph or two addressing the impact of not including this feature. 
 
 # Unresolved Questions
-This section should address any unresolved questions you have with the RFC at 
-the current time. Some examples include:
 
-- What parts of the design will require further elaboration before the RFC is 
-  complete?
-- Which portions of the design will need resolution during the implementation
-  process before the feature is made stable.
-- Are there any issues related to this RFC but outside its scope that could be 
-  addressed in future independently of this RFC? If so, what are they?
+- Exactly how would ESA plugins tie into the runtime?
+- What would the static binary compilation model look like for Luna projects
+  that employ ESA plugins? 
