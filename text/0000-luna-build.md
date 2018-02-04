@@ -185,6 +185,7 @@ proposes extending the `luna` command with these following sub-commands:
   + `freeze DEPENDENCY[-VERSION]`: Freezes the dependency at the current version
     found in `deps.yaml`, or to the specified version.
   + `unfreeze DEPENDENCY`: Unfreezes the version bound on a dependency.
+  + `rollback`: Rolls back the last dependency change operation.
 - `login [REPOSITORY]`: Logs you into the default (or specified) repository. 
   User accounts can be associated with organisations on the package repository.
 - `logout [REPOSITORY]`: Logs you out of the default (or specified) repository.
