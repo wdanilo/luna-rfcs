@@ -61,7 +61,10 @@ def main:
 There are, however, two major differences with how they work in Luna. If you
 comment out a line, it is still parsed. This means that the graph can display
 corresponding nodes, just greyed out. This is great, as it means you can still 
-see the structure of your code no matter which syntax you prefer. 
+see the structure of your code no matter which syntax you prefer. Furthermore,
+there are certain cases where Luna can make 'implicit connections' between your
+nodes to keep execution running. For a full description of when this applies, 
+see [Disable Comments](#disable-comments) later in this document.
 
 The other major difference, is what happens when you comment out a block. If you
 disable a line that introduces a block scope, this is sufficient to disable 
@@ -102,7 +105,9 @@ Luna features `TODO` comments for this purpose, allowing you to annotate lines
 of code. A todo comment looks like `# TODO`, followed by whatever string you 
 want, and can even span multiple lines (as they get concatenated together up to
 the first blank line). Todo comments are known as 'tagging comments' in Luna, 
-and are associated with the line below the comment. 
+and are part of a documentation comment. They have specific visual styles
+associated with them in debug documentation, and are not included in the 
+rendered documentation in release mode. 
 
 You can use these comments on the graph as well. Each node has a 'comment' 
 button, and pressing this will open up a text field. Anything you type in here
@@ -192,11 +197,11 @@ This RFC proposes the removal of the syntax and semantics for all current
 commenting functionality in Luna, and in their place proposes the following new
 comment types:
 
+- **Documentation Comments:** These comments allow for the documentation of Luna
+  code, and are associated with the line they are situated above.
 - **Tagging Comments:** These are the often-seen `TODO`, `FIXME` and `BUG` 
   comments, and consist of the tag and a description. They are associated with
   the line below the comment.
-- **Documentation Comments:** These comments allow for the documentation of Luna
-  code, and are associated with the line they are situated above.
 - **Disable Comments:** These comments disable a line or block of code, meaning
   that the code in question is not executed by the Luna runtime.
 - **Freeze Comments:** These comments freeze the execution of a portion of code.
@@ -204,34 +209,6 @@ comment types:
 
 The visual and textual syntax, and semantics for such comment types are 
 described in the following subsections. 
-
-## Tagging Comments
-Tagging comments are associated with the line of code that they appear above. 
-They conform to the following grammar (using EBNF syntax).
-
-```
-tag-comment = "# ", ( "TODO" | "FIXME" | "BUG" ), {comment-char};
-```
-
-Successive lines beginning with a `#` are considered to be part of the same
-comment unless the line is otherwise blank. Any subsequent lines are then 
-considered to be part of a documentation comment. In the visual syntax, each 
-node has a button to reveal any associated comments, and tagging comments will 
-be included in this area. 
-
-In the following example, the `TODO` comment is associated with the function
-definition, and would appear on the function's node. It is also possible that,
-within the function's scope on the graph view, that there will also be some way
-to display associated comments.
-
-```
-# TODO: Frobnicate the arguments
-def myFunc a b:
-    ...
-```
-
-Should a tagging comment fail to parse, it will just be treated as a standard
-doc comment (see below for more details).
 
 ## Documentation Comments
 Documentation comments in Luna support a simple, human-readable syntax that
@@ -309,6 +286,41 @@ that displays the item name, type, and associated description.
 Finally, the first line of the doc-comment block is used as the summary for the documentation comment. This means it will be displayed anywhere the full
 documentation cannot be. 
 
+## Tagging Comments
+Tagging comments are associated with the line of code that they appear above. 
+They have no special syntax, and are more defined by convention than anything
+else. Tagging comments occur within 
+[Documentation Comments](#documentation-comments), and produce particular visual
+styling in the generated documentation (in debug mode). In release mode, they 
+are not included in the generated documentation.
+
+
+They conform to the following grammar (using EBNF syntax).
+
+```
+tag-comment = "# ", ( "TODO" | "FIXME" | "BUG" ), {comment-char};
+```
+
+Successive lines beginning with a `#` are considered to be part of the same
+comment unless the line is otherwise blank. Any subsequent lines are then 
+considered to be part of the rest of the documentation comment. In the visual 
+syntax, each node has a button to reveal any associated comments, and tagging 
+comments will be included in this area. 
+
+In the following example, the `TODO` comment is associated with the function
+definition, and would appear on the function's node. It is also possible that,
+within the function's scope on the graph view, that there will also be some way
+to display associated comments.
+
+```
+# TODO: Frobnicate the arguments
+def myFunc a b:
+    ...
+```
+
+Should a tagging comment fail to parse, it will just be treated as a standard
+doc comment description without any special visual style.
+
 ## Disable Comments
 Disable comments are used to prevent execution of a given line of code. They do
 not prevent parsing of the code, as comments are not stripped by the Luna 
@@ -332,6 +344,34 @@ expression is still displayed on the graph.
 def main:
     ## hello = "Hello, World!"
 ```
+
+As part of making this more functional, Luna performs some automatic connection
+of nodes from input to output where possible. It operates based on the following
+guidelines:
+
+1. Luna is an Object-Oriented language, and hence each node has a special 'self'
+   port. This self port is used as part of the 'main-line' of processing, often
+   made visually distinct in the graph. In text, this is a group of variables:
+
+    ```
+    a = foo1 ...
+    b = a.foo2 ...
+    c = b.foo3 ...
+    d = c.foo4 ...
+    ```
+
+   In this case, disabling a node means 'take no further action', and hence we 
+   can safely connect the node chain. If `## c = b.foo ...` is disabled, it has
+   the effect of `c = b`.
+
+2. If we disable a line that does not bind variables, it does not have any 
+   special meaning. `## print "foo"`, for example, just makes this node 
+   non-executable.
+3. When disabling a line that does not use the 'self' port, we connect the 
+   first-used variable through if the types would match. In other cases, we 
+   cannot make it work, and execution is halted. For example, if we have 
+   `## x = foo a b`, and the types of `x` and `a` are the same, there is an 
+   implicit creation of `x = a` so execution can continue. 
 
 ## Freeze Comments
 Freeze comments are a category of comment specific to Luna. They allow the 
@@ -380,5 +420,4 @@ is, but this would have been a mistake due to its current lack of functionality.
 
 # Unresolved Questions
 
-- We definitely want to clarify the interaction between tagging comments and
-  doc comments should the former occur as part of the latter. 
+- How should we visually indicate disable comments in the textual syntax?
