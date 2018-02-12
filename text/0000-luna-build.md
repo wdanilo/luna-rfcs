@@ -77,18 +77,18 @@ you'll see our greeting printed to `stdout`!
 
 Now, _real_ projects are a bit more complex than the stalwart hello world, so 
 let's say we want to fire off some missiles! We're very fortunate that someone
-has written a library just for us `acme-missiles`, providing the module 
-`AcmeMissiles`. Now dependency management in Luna is _far_ more automatic than
+has written a library just for us `AcmeMissiles`, providing the module 
+`Missiles`. Now dependency management in Luna is _far_ more automatic than
 you might be used to, so just stick with me!
 
 First, we open up our `Main.luna` again, and add an import to the top. We can
 then modify our main function to fire some missiles:
 
 ```
-import AcmeMissiles
+import AcmeMissiles.Missiles
 
 def main:
-    AcmeMissiles.fire 3
+    Missiles.fire 3
 ```
 
 Now, type `luna build` again. This is where the magic happens. Luna knows about
@@ -115,20 +115,22 @@ def myTest:
 
 def TestMain:
     testResult = myTest
-    testResult
+    print testResult
 ```
 
-Let's run `luna test` and see what we get! Luna automatically converts a boolean
-output from `TestMain` into a return code on stdout, so we see `0` and we're all
-happy! Our code works properly.
+Let's run `luna test` and see what we get! By default, the test suite will just
+end with `System.exit`, and it is up to you to provide some output. Fortunately,
+we've thought of this and we print the result of our test to `stdout`. Given 
+that we see `True`, we can be happy; our code works properly!
 
 You haven't touched your project in a while, but you've heard that there's a new
-version of your dependency `acme-missiles` that makes it even more exciting! We
+version of your dependency `AcmeMissiles` that makes it even more exciting! We
 want it, but Luna doesn't automatically upgrade dependencies (getting you all
 the reproducible build goodness). In this kind of situation, however, we _want_
-the new version! All we have to do is type `luna upgrade acme-missiles`, and 
-Luna Build will automatically upgrade us to the latest version! Now if we run
-`luna build; luna exec` again, we see the more exciting result:
+the new version! All we have to do is type `luna update AcmeMissiles`, and 
+Luna Build will automatically upgrade us to the latest version! Now if we run 
+`luna run` (shorthand for `luna build; luna exec`) again, we see the more 
+exciting result:
 
 ```
 Fire!!! Fire!!! Fire!!!
@@ -143,19 +145,28 @@ This RFC proposes to extend the `luna` command-line interface with a set of
 additional commands to allow for comprehensive, automated project and package
 management. 
 
-## Compiler Management
-The `luna` command line tool will be extended with an additional sub-commend
-`update`. This will automatically download and update the system-wide install
-of Luna to the latest available version.
+## Dependency Management
+Dependency management for Luna projects is mostly automated, with each project
+storing a dependency configuration in `deps.yaml` that is automatically 
+discovered from the code. This configuration includes the compiler version, and
+all of the dependencies and their versions you require. 
 
-The `luna` command-line tool will be extended with two additional sub-commands
-to allow for management of the Luna install. These commands are as follows:
+However, in many cases, we want to be able to perform some _manual_ dependency
+management, whether it be on libraries or the compiler. To do this, `luna` 
+provides the following commands for use within a project:
 
-- `update [RELEASE-BRANCH]`: Updates the system installation of Luna to the 
-  most recently released version on the specified `RELEASE-BRANCH`. If no branch
-  is specified it defaults to stable rather than nightly.
-- `reset VERSION`: Resets the system installation of Luna to the specified 
-  `VERSION`. 
+- `update luna`: This is the same command as `update` for project dependencies
+  below, and when given the argument `luna` it updates the project's Luna 
+  version. 
+- `update [DEPENDENCY]`: Updates all non-frozen dependencies (or the specified 
+  `DEPENDENCY`) to the latest version.
+- `freeze DEPENDENCY[-VERSION]`: Freezes the dependency at the current version
+  found in `deps.yaml`, or to the specified version.
+- `unfreeze DEPENDENCY`: Unfreezes the version bound on a dependency.
+- `rollback [HASH]`: When called without a hash, it lists all dependency change
+  operations performed recently, and the status of the resulting dependency 
+  resolution operation. Each operation has an associated hash. When called with
+  a hash, it rolls back the project's dependencies to the specified state.
 
 ## Project Management
 Luna aims to automate the management of Luna projects as much as possible. As a
@@ -172,30 +183,27 @@ proposes extending the `luna` command with these following sub-commands:
   for you, before being linked into your project sandbox.
 - `exec [FLAGS]`: Executes the application that has been built, passing the
   provided flags.
+- `run [FLAGS]`: Executes the following: `luna build; luna exec FLAGS`.
 - `test`: This will run all the tests contained within the `test/` directory.
 - `clean`: This command will remove any artefacts built from the project, 
   including documentation, cached LIR and binaries. 
 - `doc`: This command will automatically traverse the source directory and build
   HTML documentation from any of the doc comments found in the sources. 
-- `dep`: This command is used for managing project dependencies. While they are
-  automatically discovered from the code, this command provides three
-  sub-commands to assist with version management:
-  + `update [DEPENDENCY]`: Updates all non-frozen dependencies (or the specified 
-    `DEPENDENCY`) to the latest version.
-  + `freeze DEPENDENCY[-VERSION]`: Freezes the dependency at the current version
-    found in `deps.yaml`, or to the specified version.
-  + `unfreeze DEPENDENCY`: Unfreezes the version bound on a dependency.
-  + `rollback`: Rolls back the last dependency change operation.
 - `login [REPOSITORY]`: Logs you into the default (or specified) repository. 
   User accounts can be associated with organisations on the package repository.
 - `logout [REPOSITORY]`: Logs you out of the default (or specified) repository.
-- `publish [major] [minor] [REPOSITORY]`: Publishes your project to the default
-  (or specified) repository. If neither `major` or `minor` is specified, it will
-  be published with a minor version bump. The default project version is `0.1`.
-  This command will automatically ask for publish confirmation.
+- `publish [major] [minor] [nightly] [REPOSITORY]`: Publishes your project to 
+  the default (or specified) repository. If neither `major` or `minor` is 
+  specified, it will be published with a minor version bump. The default project
+  version is `0.1`. This command will automatically ask for publish 
+  confirmation.
 - `retract VERSION [REPOSITORY]`: Retracts a specific version of your project
   from the default (or specified) repository. This can be used for removing 
-  broken packages. 
+  broken packages. Once a version has been retracted, it cannot be published
+  again. 
+- `options [FLAGS...]`: Sets the flags used for the project. These flags can be
+  specified either as text, or as switches (`+` or `-`) with a hierarchical API
+  (e.g `+Luna.Passes.Optimisation.ReorderConditionals`).
 
 ### Project Structure
 Luna projects created by Luna build will all have a consistent structure. This
@@ -203,9 +211,10 @@ structure will have the following tree:
 
 ```
 project-name/
- ├─ .luna_project/
+ ├─ .luna-project/
  │   ├─ config.yaml
- │   └─ deps.yaml
+ │   ├─ deps.yaml
+ │   └─ luna-studio.yaml
  ├─ dist/ 
  │   └─ .lir/
  ├─ src/
@@ -228,6 +237,8 @@ The directories and files are described as follows:
     with the project and ensures that any user of the project gets a 
     reproducible build. It contains versions of both library and tool 
     dependencies, and handles external tools for ESA plugins.
+  + `luna-studio.yaml`: This file is not for user editing and specifies the 
+    project workspace configuration.
 - `dist/`: This directory contains any binary artefacts produced as a result of
   building the Luna project.
   + `.lir/`: This directory is a cache of the Luna Intermediate Representation
@@ -238,24 +249,24 @@ The directories and files are described as follows:
   a default `TestMain.luna` which is executed as the entry point for running 
   your tests. By default, this will return a success or fail exit code to 
   `stdin` or `stderr`.
-- `LICENSE`: A blank license file. If you attempt to publish the project with a
-  blank license, an error will be generated. 
+- `LICENSE`: A license file as determined by your globally configured default. 
+  If no default is set, the user will be prompted before a LICENSE is generated.
+  If you attempt to publish the project without a license, an error will be 
+  generated. 
 - `.gitignore`: A default `.gitignore` set up to ignore Luna project build 
   artefacts.
 
-It should be noted that when creating a Luna project through the GUI, one 
-additional file will be created under the project root:
-- `.lunaproject`: This file is not for user editing and specifies the project
-  workspace configuration.
-
 ### Luna Source Files
-The true form of a Luna Program is the Luna Intermediate Representation (LIR). 
-In this way, Luna just views the source files as a human-readable serialisation
-of the LIR. The fact that LIR is the 'true' form of Luna leads to some 
-interesting functionality for luna projects, where they offer automatic 
-refactoring commands. Luna Build knows about your LIR, and can automate the 
-following refactorings:
+The true form (if you ignore whitespace) of a Luna Program is the Luna 
+Intermediate Representation (LIR). In this way, Luna just views the source files
+as a human-readable serialisation of the LIR. The fact that LIR is the 'true' 
+form of Luna leads to some interesting functionality for luna projects, where 
+they offer automatic refactoring commands. Luna Build knows about your LIR, and 
+can automate the following refactorings:
 
+- `format`: Normalises the textual Luna source to match the representation 
+  generated from the LIR. This is automatically applied to all files in `src/`
+  and `test/`, and ensures a uniform coding standard for Luna.
 - `extract [MODULE | FUNCTION | CLASS | INTERFACE]`: Extracts the 
   specified entity to an automatically named file. It automatically performs
   imports and renaming to keep the code working, and names the file 
@@ -286,7 +297,8 @@ elements are automatically discovered for Luna Projects:
   All modules in project `Foo` that should be internal only should be inside a
   module named `Internal` (e.g. `Foo.Internal.Bar`). The Luna compiler 
   automatically enforces that you cannot use `Internal` modules from other 
-  projects unless you pass the `-d --debug` flag to the compiler. 
+  projects unless you pass the `luna options +Luna.Source.AllowInternalModules` 
+  flag to the compiler. 
 - **Source Directory and Test Directory:** Luna automatically finds sources in
   `src/` and tests in `test/`.
 
@@ -298,7 +310,8 @@ the default behaviour where relevant.
   syntax.
 - `luna-version`: This field can pin the Luna version with which a project can
   be built. 
-- `luna-options`: Options to pass to the Luna compiler (e.g. `-O3`)
+- `luna-options`: Options to pass to the Luna compiler (e.g. `-O3`). This is the
+  field set by the `luna options` command above.
 
 ### Dependency Management
 Each Luna project is automatically created in a sandbox. When you import a 
@@ -309,6 +322,19 @@ in the `deps.yaml` file.
 All dependency resolution is done based on version constraints for projects in
 the repository, and any information from manually frozen versions is used in 
 this resolution process. 
+
+## Global Configuration
+Luna maintains a global user-configuration file in `~/.luna/config.yaml`, which
+can both be edited manually and set via sub-commands of the `luna` executable.
+The fields it contains are currently:
+
+- **Package Repositories:** The available package databases. Each database has a 
+  short name, URL and associated path to the identity file gained from logging
+  in. Set by `luna repo SHORT URL IDENT-PATH`.
+- **Default Repositories:** The short name of one of the above repository. 
+  Configured by `luna repo default NAME`.
+- **Default License:** The name of the default license file to be generated. Set
+  via `luna license default NAME`.
 
 ## Package Management
 In addition to the automated functionality for dependency management provided by
@@ -326,9 +352,10 @@ packages. The commands are as follows:
   specified it installs the specific version, otherwise the latest version of
   the package is installed. When executing install, Luna Build will build the 
   artefacts for the package if not downloaded from a binary repository. If the
-  package provides an executable, the executable will be placed in a directory 
-  on `$PATH`. If it contains a library, the library will be made available to
-  the Luna compiler. Furthermore, it will also download and install any of the
+  package provides an executable, the executable will be made accessible from
+  the same directory on your `$PATH` that the `luna` command is available from. 
+  If it contains a library, the library will be made available to the Luna 
+  compiler. Furthermore, it will also download and install any of the 
   dependencies required by the package. 
 - `remove NAME[-VERSION]`: Removes the package specified by `NAME` from the 
   package database. If no version is given it will remove all versions of the 
@@ -337,7 +364,9 @@ packages. The commands are as follows:
   not execute any build or install steps.
 
 If executed from within a project, these commands operate on the project's local
-view of the package database.
+view of the global package database. As an example, if you `luna install foo`
+within a project, it will be downloaded (and possibly built) into the global
+database, and then symlinked into the local project.
 
 ### The Global Package Database
 The Luna install maintains a global package database that keeps versioned copies
@@ -347,7 +376,9 @@ project, thus avoiding duplication of packages in the system.
 
 The database knows the difference between package versions, and hence can 
 contain multiple versions of the same package in use by different projects on 
-the system. 
+the system. It can even include the same package and version multiple times if
+the sub-dependencies of the package differ (achieved by hashing the project 
+and its dependencies recursively).
 
 ### Package Repositories
 Luna will provide a centralised repository and tooling for managing and 
