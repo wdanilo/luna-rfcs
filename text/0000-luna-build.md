@@ -312,6 +312,14 @@ the default behaviour where relevant.
   be built. 
 - `luna-options`: Options to pass to the Luna compiler (e.g. `-O3`). This is the
   field set by the `luna options` command above.
+- `external-target`: Allows library creators to build additional targets (e.g.
+  external libraries) as part of their calls to `luna build`. These are all 
+  configured by command-line calls to `luna target` with subcommands. Each 
+  target has the following fields:
+  + `name`: The target name. This is used for the output.
+  + `tool`: The external tool.
+  + `output`: The output directory and name.
+  + `options`: Options to pass to the external build tool.
 
 ### Dependency Management
 Each Luna project is automatically created in a sandbox. When you import a 
