@@ -4,7 +4,7 @@ ___
 - **Change Type:** Breaking
 - **RFC Dependencies:** 
 - **RFC PR:** 
-- **Luna Issue:** 
+- **Luna Issue:** luna/luna/issues/144
 - **Implemented:** 
 
 # Summary
