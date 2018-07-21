@@ -101,7 +101,7 @@ syntax, which will solve this issue, is proposed below.
 
 
 
-</br>
+</br></br>
 ## Lambda syntax
 
 ### Current approach problems
@@ -316,7 +316,7 @@ The proposed solution has many benefits:
 
 
 
-
+</br></br>
 ## Function definitions 
 
 ### Current approach problems
@@ -426,6 +426,7 @@ test =
 
 
 
+</br></br>
 ## Type level variable scoping
 
 ### Current approach problems
@@ -468,6 +469,7 @@ foo x = ...
 
 
 
+</br></br>
 ## Non first-class sequential code blocks.
 
 ### Current approach problems
@@ -537,6 +539,7 @@ result = State.run Map.empty do
 
 
 
+</br></br>
 ## Modules / classes / interfaces 
 
 TO BE MERGED WITH MODULES PROPOSAL
@@ -544,6 +547,7 @@ TO BE MERGED WITH MODULES PROPOSAL
 
 
 
+</br></br>
 ## Imports 
 
 TO BE MERGED WITH MODULES PROPOSAL
@@ -551,6 +555,7 @@ TO BE MERGED WITH MODULES PROPOSAL
 
 
 
+</br></br>
 ## Overview of the proposed design
 
 Let's discuss the proposed design based on a comparison with the old one:
