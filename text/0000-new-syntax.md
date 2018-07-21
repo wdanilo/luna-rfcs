@@ -101,7 +101,7 @@ syntax, which will solve this issue, is proposed below.
 
 
 
-
+</br>
 ## Lambda syntax
 
 ### Current approach problems
@@ -166,7 +166,7 @@ cfg = open file . parse Config . catch error->
 
 
 
-
+</br></br>
 ## Types and constructors
 
 ### Current approach problems
@@ -426,7 +426,7 @@ test =
 
 
 
-#### Type level variable scoping
+## Type level variable scoping
 
 ### Current approach problems
 
@@ -468,7 +468,9 @@ foo x = ...
 
 
 
-#### Non first-class sequential code blocks.
+## Non first-class sequential code blocks.
+
+### Current approach problems
 
 Consider the following PSEUDO-code:
 
@@ -535,8 +537,21 @@ result = State.run Map.empty do
 
 
 
+## Modules / classes / interfaces 
 
-### Proposed design.
+TO BE MERGED WITH MODULES PROPOSAL
+
+
+
+
+## Imports 
+
+TO BE MERGED WITH MODULES PROPOSAL
+
+
+
+
+## Overview of the proposed design
 
 Let's discuss the proposed design based on a comparison with the old one:
 
