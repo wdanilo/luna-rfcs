@@ -10,6 +10,7 @@ ___
 
 
 
+</br></br>
 Summary
 =======
 The syntax if one of the most important aspects of a language. Good syntax is
@@ -31,7 +32,7 @@ concepts of modules, classes and interfaces.
 
 
 
-
+</br></br>
 Motivation
 ==========
 Our first approach to Luna syntax was not perfect. It was developed to nicely
@@ -63,6 +64,7 @@ take the time to bring a vast simplification to the language in the same swoop.
 
 
 
+</br></br>
 Overview
 ========
 This RFC is a big one. It is impossible to touch syntax topics without thinking
@@ -77,6 +79,7 @@ ideas against them is a very efficient way to fast filter bad decisions.
 
 
 
+</br></br>
 Design principles
 =================
 It is impossible to re-design even small part of the syntax without considering
@@ -148,6 +151,7 @@ Invariants
 
 
 
+</br></br>
 (Brief) Type-System Primer
 ==========================
 Luna's type system is based on the notion that each type is a name for a set of
@@ -179,6 +183,7 @@ explicit lists of implemented interfaces (TODO: explain it).
 
 
 
+</br></br>
 Reference-Level Explanation
 ===========================
 This design proposes a major breaking change for Luna, wholesale replacing 
@@ -707,13 +712,8 @@ main =
 ```
 
 
-### To be done
-- Discuss the look and feel of type constraints (`type (n : Nat) => Vector n a`)
-- Describe the "GADT" style
 
-
-
-### Types As Modules
+### Modules
 The same notion of a type can be used to provide the functionality that is
 traditionally expected of a _module_ (in the common, not ML sense). In most
 programming languages, their module system provides a mechanism for code-reuse
@@ -755,7 +755,7 @@ into its scope. Inside the file, however, everything can be seen, with no need
 to forward-declare.
 
 
-### Types As Interfaces
+### Interfaces
 A type in Luna can also act as a 'contract', a specification of the behavior 
 expected of a type. The use of types as interfaces in Luna is, as you might 
 expect, contravariant. As long as the type satisfies the category defined by
@@ -880,28 +880,6 @@ loggerFn msg item = msg <> prettyPrint(Text) item
 As you can see, the syntax for specifying the instance in the ambiguous case 
 uses parentheses to apply the type to the `prettyPrint` function. 
 
-
-### Constructor Naming
-This proposal has made a change to the naming of constructors, making them have
-lower-case names, like any other functions. This produces an elegant unification
-between the standard constructors and any smart constructors that might be
-created. 
-
-This does, however, require a change to the pattern matching syntax. Now, all
-constructors in pattern matches are required to be wrapped in parentheses. 
-Consider the following example. 
-
-```
-case conDecl of
-    impCon@(implicitConstructor name type)    -> ...
-    userCon@(userConstructor name (type sig)) -> ...
-```
-
-This is not entirely elegant, even though it is consistent, and is open to
-improvement. The rationale behind the renaming of constructors is to make it
-much simpler to work with types where constructor names are the same as the type
-name. If this change wasn't made, you would be forced to pattern match on, and
-construct with, `Type.Type` as the constructor, which is _very_ inelegant. 
 
 
 
@@ -1133,3 +1111,10 @@ efficientMap k v =
 
 myMap = empty : efficientMap k v
 ```
+
+
+
+
+### To be done
+- Discuss the look and feel of type constraints (`type (n : Nat) => Vector n a`)
+- Describe the "GADT" style
