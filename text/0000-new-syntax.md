@@ -8,9 +8,54 @@ ___
 - **Implemented:** 
 
 
+Table of Contents
+=================
+
+- [Table of Contents](#table-of-contents)
+- [Summary](#summary)
+- [Motivation](#motivation)
+- [Design principles](#design-principles)
+    - [Invariants](#invariants)
+- [(Brief) Type-System Primer](#brief-type-system-primer)
+- [Reference-Level Explanation](#reference-level-explanation)
+    - [Type signatures](#type-signatures)
+        - [Current problems](#current-problems)
+        - [The solution](#the-solution)
+    - [Lambda syntax](#lambda-syntax)
+        - [Current problems](#current-problems)
+        - [The solution](#the-solution)
+    - [Function definitions ](#function-definitions)
+        - [Current problems](#current-problems)
+        - [The solution](#the-solution)
+    - [Naming rules](#naming-rules)
+        - [Current problems](#current-problems)
+        - [The solution](#the-solution)
+    - [Unifying Types, Modules and Interfaces](#unifying-types-modules-and-interfaces)
+        - [Why a new keyword?](#why-a-new-keyword)
+        - [Constructors](#constructors)
+        - [Polymorphism](#polymorphism)
+        - [Method definition](#method-definition)
+        - [Generalized type definition](#generalized-type-definition)
+        - [Pattern matching](#pattern-matching)
+        - [Modules](#modules)
+            - [Files and modules](#files-and-modules)
+        - [Interfaces](#interfaces)
+            - [Implementing Interfaces](#implementing-interfaces)
+            - [On the Semantics of Standalone Implementations](#on-the-semantics-of-standalone-implementations)
+            - [Overlapping Interface Implementations](#overlapping-interface-implementations)
+    - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
+        - [Current problems](#current-problems)
+        - [The solution](#the-solution)
+    - [Modules / classes / interfaces](#modules-classes-interfaces)
+    - [Imports](#imports)
+    - [TODO:](#todo)
+    - [Overview of the proposed design](#overview-of-the-proposed-design)
+    - [Implementation notes](#implementation-notes)
+        - [Types as Generics](#types-as-generics)
+        - [To be done](#to-be-done)
 
 
-</br></br>
+
 Summary
 =======
 The syntax if one of the most important aspects of a language. Good syntax is
@@ -32,7 +77,7 @@ concepts of modules, classes and interfaces.
 
 
 
-</br></br>
+
 Motivation
 ==========
 Our first approach to Luna syntax was not perfect. It was developed to nicely
@@ -64,22 +109,6 @@ take the time to bring a vast simplification to the language in the same swoop.
 
 
 
-</br></br>
-Overview
-========
-This RFC is a big one. It is impossible to touch syntax topics without thinking
-about almost every other entity including even the semantics of a variable
-assignment. Every single thing can be designed in many different ways. Over the
-past years we have learned that the only way which brings us a step closer to a
-design that actually works and fits well into all requirements is a design that
-bases on a small set of well defined invariants. Searching for invariants should
-be always the first step when searching for a complex solution and testing new
-ideas against them is a very efficient way to fast filter bad decisions.
-
-
-
-
-</br></br>
 Design principles
 =================
 It is impossible to re-design even small part of the syntax without considering
@@ -151,7 +180,7 @@ Invariants
 
 
 
-</br></br>
+
 (Brief) Type-System Primer
 ==========================
 Luna's type system is based on the notion that each type is a name for a set of
@@ -183,7 +212,7 @@ explicit lists of implemented interfaces (TODO: explain it).
 
 
 
-</br></br>
+
 Reference-Level Explanation
 ===========================
 This design proposes a major breaking change for Luna, wholesale replacing 
@@ -193,9 +222,9 @@ reader establish a more holistic idea of the design presented here.
 
 
 
-</br></br>
-Type signature
---------------
+
+Type signatures
+---------------
 
 ### Current problems
 The type signature operator `::` is used by small group of languages (mostly
@@ -210,7 +239,7 @@ syntax is proposed in this document as well.
 
 
 
-</br></br>
+
 Lambda syntax
 -------------
 
@@ -274,7 +303,7 @@ cfg = open file . parse Config . catch error->
 
 
 
-</br></br>
+
 Function definitions 
 --------------------
 
@@ -395,7 +424,7 @@ test =
 
 
 
-</br></br>
+
 Naming rules
 ------------
 
@@ -484,7 +513,7 @@ uncapitalized names. The proposed solution has many benefits:
 
 
 
-</br></br>
+
 Unifying Types, Modules and Interfaces
 --------------------------------------
 We propose to unify the abstraction of classes, modules and interfaces under a
@@ -889,7 +918,7 @@ uses parentheses to apply the type to the `prettyPrint` function.
 
 
 
-</br></br>
+
 ## First-class sequential code blocks.
 
 
@@ -965,12 +994,12 @@ result = State.run Map.empty do
 
 
 
-</br></br>
+
 ## Modules / classes / interfaces 
 TO BE MERGED WITH MODULES PROPOSAL
 
 
-</br></br>
+
 ## Imports 
 TO BE MERGED WITH MODULES PROPOSAL
 
@@ -982,7 +1011,7 @@ TO BE MERGED WITH MODULES PROPOSAL
 - dynamic types
 - unnamed multiline types
 
-</br></br>
+
 ## Overview of the proposed design
 
 Let's discuss the proposed design based on a comparison with the old one:
