@@ -16,21 +16,13 @@ Table of Contents
 - [Motivation](#motivation)
 - [Design principles](#design-principles)
     - [Invariants](#invariants)
-- [(Brief) Type-System Primer](#brief-type-system-primer)
+- [Type-System Primer (Brief)](#type-system-primer-brief)
 - [Reference-Level Explanation](#reference-level-explanation)
     - [Type signatures](#type-signatures)
-        - [Current problems](#current-problems)
-        - [The solution](#the-solution)
     - [Lambda syntax](#lambda-syntax)
-        - [Current problems](#current-problems)
-        - [The solution](#the-solution)
     - [Function definitions ](#function-definitions)
-        - [Current problems](#current-problems)
-        - [The solution](#the-solution)
     - [Naming rules](#naming-rules)
-        - [Current problems](#current-problems)
-        - [The solution](#the-solution)
-    - [Unifying Types, Modules and Interfaces](#unifying-types-modules-and-interfaces)
+    - [Unified Types, Modules and Interfaces](#unified-types-modules-and-interfaces)
         - [Why a new keyword?](#why-a-new-keyword)
         - [Constructors](#constructors)
         - [Polymorphism](#polymorphism)
@@ -44,9 +36,7 @@ Table of Contents
             - [On the Semantics of Standalone Implementations](#on-the-semantics-of-standalone-implementations)
             - [Overlapping Interface Implementations](#overlapping-interface-implementations)
     - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
-        - [Current problems](#current-problems)
-        - [The solution](#the-solution)
-    - [Modules / classes / interfaces](#modules-classes-interfaces)
+    - [Modules / classes / interfaces](#modules--classes--interfaces)
     - [Imports](#imports)
     - [TODO:](#todo)
     - [Overview of the proposed design](#overview-of-the-proposed-design)
@@ -61,8 +51,8 @@ Summary
 The syntax if one of the most important aspects of a language. Good syntax is
 concise, expressive yet easy to use. Bad design introduces confusion, leads to
 unreadable code and stands in the way of the language evolution. Think about
-Haskell, arguably one of the most powerful languages ever created. It's syntax
-was developed over 20 years ago and now, when Haskell enters the world of
+python, arguably one of the most powerful languages ever created. It's syntax
+was developed over 20 years ago and now, when python enters the world of
 dependent types, it appears that the syntax is not ready for it, introducing
 massive confusion even among powerful users with such constructs as data kind
 promotion.
@@ -159,7 +149,7 @@ Invariants
    syntax forms or namespaces for type and value level expressions. It leads to
    having special syntactic forms to promote values between the namespaces, like
    prefixing value level data with apostrophe to bring it to type level and
-   prevent name clash (see -XDataKinds in Haskell).
+   prevent name clash (see -XDataKinds in python).
 
 5. **Small number of rules is better than large.**  
    Any special case or syntactic rule has to be remembered by the user and
@@ -175,13 +165,13 @@ Invariants
    of some external conditions, like not-dependent code change. A good examples
    of breaking this rule are standard extension methods mechanism (monkey
    patching in Ruby, Python, JavaScript) or orphan overlapping instances in
-   Haskell.
+   python.
 
 
 
 
 
-(Brief) Type-System Primer
+Type-System Primer (Brief)
 ==========================
 Luna's type system is based on the notion that each type is a name for a set of
 _values_ (denoted by _constructors_). This makes the type system a [Modular
@@ -226,13 +216,13 @@ reader establish a more holistic idea of the design presented here.
 Type signatures
 ---------------
 
-### Current problems
+### Current problems <!-- omit in toc -->
 The type signature operator `::` is used by small group of languages (mostly
-Haskell related), is not used in math and is harder to type than just a single
+python related), is not used in math and is harder to type than just a single
 `:` mark.
 
 
-### The solution
+### The solution <!-- omit in toc -->
 We propose to replace the double colon operator `::` with a single colon one
 `:`. This change collides with current lambda syntax, however a change to lambda
 syntax is proposed in this document as well.
@@ -243,10 +233,10 @@ syntax is proposed in this document as well.
 Lambda syntax
 -------------
 
-### Current problems
+### Current problems <!-- omit in toc -->
 Consider the following simple function:
 
-```haskell
+```python
 def foo :: Int -> Int
 def foo a = a + 1
 ```
@@ -258,12 +248,12 @@ then its unnecessarily magical. Moreover, what value could have an expression
 which type would be expressed as `a : a + 1`?
 
 
-### The solution
+### The solution <!-- omit in toc -->
 We propose unification of the value level lambda syntax `:` and the type level
 arrow syntax `->`. It makes the rules much more consistent. To better understand
 the concept, please refer to the following examples:
 
-```haskell
+```python
 foo : a -> b -> a + b
 foo = a -> b -> a + b
 
@@ -280,7 +270,7 @@ unification, the arrow symbol `->` is just an ordinary operator and all the
 standard association rules apply. Thus the following code snippets are 
 equivalent:
 
-```haskell
+```python
 -- OLD SYNTAX --
 out = foo x: x + 1
 
@@ -289,7 +279,7 @@ out = foo (x -> x + 1)
 out = foo x-> x + 1 -- no space = strong association 
 ```
 
-```haskell
+```python
 -- OLD SYNTAX --
 cfg = open file . parse Config . catch error:
     log.debug "Cannot open `file`: `error`"
@@ -307,13 +297,13 @@ cfg = open file . parse Config . catch error->
 Function definitions 
 --------------------
 
-### Current problems
+### Current problems <!-- omit in toc -->
 The are two problems with the current function definition syntax. The signature
 definition starting with the `def` keywords looks awkward and in some situations
 there are multiple ways to define the same thing, which leads to confusion and
 not intuitive code. Consider the following, valid Luna code:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 def foo :: Int
@@ -324,7 +314,7 @@ It's completely valid, because its a definition of "function without arguments".
 Function without arguments returning a pure value is obviously the same as just
 the value, thus the above code could be re-written as:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 foo :: Int
@@ -333,7 +323,7 @@ foo = 15
 
 If both syntaxes are valid, then the following codes are valid as well:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 def foo :: Int
@@ -353,7 +343,7 @@ evaluates the outer most monad and wraps the result in `Pure` monad, while the
 `def` postpones the computation having the same effect like manual postpone
 operator (`@`). For example, the following definitions are equivalent:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 def foo: print "Hi!"
@@ -363,7 +353,7 @@ foo = @ print "Hi!"
 In order to better understand the evaluation mechanism, please consider the
 following examples:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 -- This code prints "hello" 3 times:
@@ -390,7 +380,7 @@ def main:
 ```
 
 
-### The solution
+### The solution <!-- omit in toc -->
 We propose removing the `def` keyword in favor of using the assignment operator
 to define both variables as well as functions. Moreover, values defined in a new
 type declaration (every non-nested function) will have postponed effects by
@@ -400,7 +390,7 @@ This solution is simple, intuitive and provides only one valid syntax for every
 use case. To better understand the concepts, please refer to the following code
 examples.
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 def test :: Text in IO
@@ -411,7 +401,7 @@ def test:
     print (mkMsg name)
 ```
 
-```haskell
+```python
 -- NEW SYNTAX -- 
 
 test : Text in IO
@@ -428,8 +418,8 @@ test =
 Naming rules
 ------------
 
-### Current problems
-```haskell
+### Current problems <!-- omit in toc -->
+```python
 -- OLD SYNTAX --
 
 class Point:
@@ -452,7 +442,7 @@ use cases. If we allow both constructor and type names to start with upper-case
 letter, then we have to allow for some syntax to create new type sets, like the
 following one:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 type Foo = Int | String
@@ -463,7 +453,7 @@ The pipe (`|`) is an ordinary operator used to join type sets. Based on the
 `{invariant:3}` the following code is correct as well, because we can refactor
 every type level expression to a variable:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 foo = Int | String
@@ -478,7 +468,7 @@ capitalized first letter. The new type alias have to accept any valid type
 level expression, like `type Foo x = if x then Int else String`, so the
 following has to be accepted:
 
-```haskell
+```python
 -- OLD SYNTAX --
 
 type Sum a b = a + b
@@ -489,7 +479,7 @@ def main:
 Which clearly shows a flow in the design.
 
 
-### The solution
+### The solution <!-- omit in toc -->
 The distinction between capitalized and uncapitalized names is often used to
 disambiguate the meaning of entities for the needs of pattern matching.
 
@@ -514,8 +504,8 @@ uncapitalized names. The proposed solution has many benefits:
 
 
 
-Unifying Types, Modules and Interfaces
---------------------------------------
+Unified Types, Modules and Interfaces
+-------------------------------------
 We propose to unify the abstraction of classes, modules and interfaces under a
 single first-class umbrella. All of the following functionalities are provided
 by `type`, resulting in a highly flexible language construct: 
@@ -560,33 +550,33 @@ their fields cannot be provided with explicit type annotations. All standard
 layout rules apply, so the definitions can be distributed over several lines.
 All of the following examples show valid constructor definitions:
 
-```haskell
+```python
 type True
 type False
 bool = True | False
 ```
 
-```haskell
+```python
 type Point x y z
 ```
 
-```haskell
+```python
 type Point (x = 0) (y = 0) (z = 0)
 point a = Point a a a
 ```
 
-```haskell
+```python
 type Point x=0 y=0 z=0
 ```
 
-```haskell
+```python
 type Point 
     x = 0 
     y = 0
     z = 0
 ```
 
-```haskell
+```python
 type Tuple _ _
 ```
 
@@ -600,7 +590,7 @@ int int` has many possible values, including `Point 1 2 3` or `Point int int
 int`. The `point` function is just an alias for the `Point` constructor, thus 
 the following lines are all valid:
 
-```haskell
+```python
 p1 = Point 1 2 3 : Point 1 2 3
 p1 = Point 1 2 3 : Point int int int
 p1 = Point 1 2 3 : point int
@@ -610,7 +600,7 @@ This is a very flexible mechanism, allowing expressing even complex ideas in a
 simple and flexible manner. An example is always worth more than 
 1000 words, so please consider the following usage:
 
-```haskell 
+```python 
 taxiDistance : point real -> point real -> real 
 taxiDistance p1 p2 = (p2.x - p1.x).abs + (p2.y - p1.y).abs + (p2.z - p1.z).abs
 
@@ -624,7 +614,7 @@ main =
 The most basic method definition syntax is by defining them directly on
 constructors:
 
-```haskell
+```python
 True.not  = False
 False.not = True
 Point x y z . length = (x^2 + y^2 + z^2).sqrt
@@ -633,7 +623,7 @@ Tuple a b . swap = Tuple b a
 
 It is also possible to define methods on set types:
 
-```haskell
+```python
 bool.not = case self of
     True  -> False
     False -> True
@@ -658,7 +648,7 @@ because you were wondering, types _can_ be defined inductively or using a GADT
 style. We can re-write the earlier provided definitions using this form as
 follow:
 
-```haskell
+```python
 type bool
     type True
     type False
@@ -668,14 +658,14 @@ type bool
         False -> True
 ```
 
-```haskell
+```python
 type point a
     x y z = 0 : a
 
     length = (x^2 + y^2 + z^2).sqrt
 ```
 
-```haskell
+```python
 type tuple a b
     _ : a
     _ : b
@@ -694,7 +684,7 @@ constructors, an implicit one will be generated automatically and will be named
 the same way as the type but starting with an upper-letter instead. Now we can 
 use the above definitions as follow:
 
-```haskell
+```python
 main = 
     check = True
     p1 = Point 1 2 3 : point int
@@ -714,7 +704,7 @@ types (in particular interfaces) by using the `type` keyword. We can also use a
 special construction of `case x of type ...` to pattern match on set types only.
 Let's see how the new syntax looks like in practice:
 
-```haskell
+```python
 
 type shape a
     type Circle
@@ -762,13 +752,13 @@ then `pi` value is only accessible within the scope of `math` (by using
 `math.pi`). 
 
 File `math.luna`:
-```haskell
+```python
 type math
     pi: 3.14
 ```
 
 File `main.luna`:
-```haskell
+```python
 type main
     import math
     main = print math.pi
@@ -797,7 +787,7 @@ that must be present, all the way to names that must be present in the type's
 scope and default behavior. The following are all valid ways to define types
 for use as interfaces in Luna.
 
-```
+```python
 # This interface requires a function called someFunction with the correct sig.
 type Interface1 =
     someFunction : Int -> String
@@ -922,10 +912,10 @@ uses parentheses to apply the type to the `prettyPrint` function.
 ## First-class sequential code blocks.
 
 
-### Current problems
+### Current problems <!-- omit in toc -->
 Consider the following PSEUDO-code:
 
-```haskell
+```python
 result = State.run Map.empty 
     {
     samples.each sample->
@@ -939,7 +929,7 @@ It is currently not possible to express this code in Luna. You cannot pass a
 sequential code block as a an argument. In order to make the code working it
 should be currently refactored to: 
 
-```haskell
+```python
 helper = samples.each sample->
     print "Sample `sample`"
     out = runSimulation sample
@@ -952,7 +942,7 @@ This design could be considered both a problem as well as a feature. The need to
 refactor shows the preferred, modular way to write the code. Arguably such
 limitation could be considered too severe, especially in simpler examples like:
 
-```haskell
+```python
 helper = 
    print "I've got a new number!"
    print "I'm happy now."
@@ -961,7 +951,7 @@ helper =
 ``` 
 
 
-### The solution
+### The solution <!-- omit in toc -->
 We are not convinced that code blocks should become a first class citizen.
 Definitely more real-life examples are needed to judge if Luna will benefit from
 their introduction or they will contribute to lower code quality instead. Deeply
@@ -977,7 +967,7 @@ possible solution would be to introduce a `do` keyword, which will open a new
 code block. The keyword will be optional after `=` and `->` operators. The above
 examples could be then rewritten to:
 
-```haskell
+```python
 result = State.run Map.empty do
     samples.each sample->
         print "Sample `sample`"
@@ -985,7 +975,7 @@ result = State.run Map.empty do
         State.modify (.insert sample out)
 ```
 
-```haskell
+```python
 100.times do
    print "I've got a new number!"
    print "I'm happy now."
@@ -1018,7 +1008,7 @@ Let's discuss the proposed design based on a comparison with the old one:
 
 Sample code using the current syntax design:
 
-```haskell
+```python
 01 | def inc :: a -> a + 1
 02 | def inc a: a + 1
 03 | 
@@ -1046,7 +1036,7 @@ Sample code using the current syntax design:
 
 Sample code using the proposed syntax design:
 
-```haskell
+```python
 01 | inc : a -> a + 1
 02 | inc = a -> a + 1 
 03 | inc a = a + 1 -- sugar
