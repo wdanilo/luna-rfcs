@@ -11,105 +11,111 @@ ___
 Table of Contents
 =================
 
-- [Table of Contents](#table-of-contents)
+<!-- MarkdownTOC Style autolink="true" levels="1,2,3" -->
+
 - [Summary](#summary)
 - [Motivation](#motivation)
-- [Design principles](#design-principles)
-    - [Invariants](#invariants)
+- [Design Principles](#design-principles)
+  - [Invariants](#invariants)
 - [Type-System](#type-system)
-    - [Brief Introduction](#brief-introduction)
-    - [Types. Unified Classes, Modules and Interfaces](#types-unified-classes-modules-and-interfaces)
+  - [Brief Introduction](#brief-introduction)
+  - [Types. Unified Classes, Modules and Interfaces](#types-unified-classes-modules-and-interfaces)
 - [New Syntax Reference](#new-syntax-reference)
-    - [Naming rules](#naming-rules)
-    - [Type signatures](#type-signatures)
-    - [Functions](#functions)
-        - [Function declaration](#function-declaration)
-        - [Named arguments](#named-arguments)
-        - [Default arguments](#default-arguments)
-        - [Anonymous functions](#anonymous-functions)
-    - [Types as Classes](#types-as-classes)
-        - [Constructors](#constructors)
-        - [Methods](#methods)
-        - [Constructors as types](#constructors-as-types)
-        - [Type combinators](#type-combinators)
-        - [Pattern matching](#pattern-matching)
-        - [Polymorphism](#polymorphism)
-        - [Generalized type definitions](#generalized-type-definitions)
-    - [Types as Modules](#types-as-modules)
-        - [Files and modules](#files-and-modules)
-        - [Module Examples](#module-examples)
-    - [Types as Interfaces](#types-as-interfaces)
-        - [Implementing Interfaces](#implementing-interfaces)
-    - [Imports](#imports)
-        - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
-    - [Anonymous Types](#anonymous-types)
-        - [Anonymous Types as Types](#anonymous-types-as-types)
-        - [Anonymous Types as Values](#anonymous-types-as-values)
-    - [Nested Types](#nested-types)
-    - [Example - Dependent Vector](#example---dependent-vector)
-    - [Example - Linked List](#example---linked-list)
-    - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
-    - [TODO:](#todo)
-    - [Implementation notes](#implementation-notes)
-        - [To be done](#to-be-done)
+  - [Naming rules](#naming-rules)
+    - [Current problems](#current-problems)
+    - [Proposed solution](#proposed-solution)
+  - [Type signatures](#type-signatures)
+    - [Current problems](#current-problems-1)
+    - [Proposed solution](#proposed-solution-1)
+  - [Functions](#functions)
+    - [Function declaration](#function-declaration)
+    - [Named arguments](#named-arguments)
+    - [Default arguments](#default-arguments)
+    - [Anonymous functions](#anonymous-functions)
+  - [Types as Classes](#types-as-classes)
+    - [Constructors](#constructors)
+    - [Methods](#methods)
+    - [Constructors as types](#constructors-as-types)
+    - [Type combinators](#type-combinators)
+    - [Pattern matching](#pattern-matching)
+    - [Polymorphism](#polymorphism)
+    - [Generalized type definitions](#generalized-type-definitions)
+  - [Types as Modules](#types-as-modules)
+    - [Files and modules](#files-and-modules)
+    - [Module Examples](#module-examples)
+  - [Types as Interfaces](#types-as-interfaces)
+    - [Implementing Interfaces](#implementing-interfaces)
+  - [Imports](#imports)
+    - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
+  - [Anonymous Types](#anonymous-types)
+    - [Anonymous Types as Types](#anonymous-types-as-types)
+    - [Anonymous Types as Values](#anonymous-types-as-values)
+  - [Nested Types](#nested-types)
+  - [Example - Dependent Vector](#example---dependent-vector)
+  - [Example - Linked List](#example---linked-list)
+  - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
+    - [Current problems](#current-problems-2)
+    - [Proposed solution](#proposed-solution-2)
+  - [TODO:](#todo)
+  - [Overview of the proposed design](#overview-of-the-proposed-design)
+  - [Implementation notes](#implementation-notes)
+    - [Types as Generics](#types-as-generics)
+    - [To be done](#to-be-done)
 - [Unresolved Questions](#unresolved-questions)
+
+<!-- /MarkdownTOC -->
 
 
 
 Summary
 =======
-The syntax if one of the most important aspects of a language. Good syntax is
-concise, expressive yet easy to use. Bad design introduces confusion, leads to
-unreadable code and stands in the way of the language evolution. Think about
-Haskell, arguably one of the most powerful languages ever created. It's syntax
-was developed over 20 years ago and now, when Haskell enters the world of
-dependent types, it appears that the syntax is not ready for it, introducing
-massive confusion even among powerful users with such constructs as data kind
-promotion.
+The importance of a language's syntax cannot be understated. Good syntax is 
+concise, expressive and yet easy to use. Badly designed syntax introduces 
+confusion, leads to unreadable code, and stands in the way of the language's 
+evolution. In addition to being an obvious truth to any programmer, it can be
+seen in real world examples: just look at Haskell, whose base syntax is over 20 
+years old. These days, with Haskell entering the world of dependent types, it 
+has become abundantly clear that its syntax is not able to cope, leading to 
+confusion even amongst seasoned language users. 
 
-The syntax directly affects how the code is structured, which is also a topic of
-this proposal. Any sensible programming language must provide its users with
-some way to modularise their code, splitting it up into well-defined parts. The
-ML family of languages, in particular 1ML and OCaml take the concept of a module
-further and Luna, with its unique category-based type system, is in a position
-to provide the most flexible implementation of modules yet, unifying the
-concepts of modules, classes and interfaces. 
-
+A language's syntax directly affects how code is structured, and as a result 
+affects what is considered to be idiomatic style. Any sensible programming 
+language must provide users with the ability to modularise their code and split
+it into well-defined parts. The ML family of languages, in particular 1ML and 
+OCaml, take the concept of a module even further. Luna, with its unique system
+for categorical typing, is in a position to provide the most flexible 
+implementation of modules yet, unifying the concepts of modules, classes and
+interfaces.
 
 
 
 Motivation
 ==========
-Our first approach to Luna syntax was not perfect. It was developed to nicely
-play with the graphical representation, be easy to use and expressive, however
-after some time of its usage we have discovered many improvement possibilities.
-Moreover, at present, Luna has nothing but a rudimentary module system to aid in
-the complexity management and scoping of code. For a sophisticated language this
-is a bad state of affairs.
+The first attempt at creating a syntax for Luna was far from perfect. The focus
+of its development was that it played nicely with the language's graphical
+representation, but while it was relatively easy to use, we have found it to be
+unsatisfactory for the future goals of Luna as a programming language. Moreover,
+the current implementation has only a rudimentary module system, a poor state of
+affairs for a sophisticated language.
 
-This RFC aims to propose a redesign of Luna syntax, which covers almost all
-aspects of the language, in order to provide much more unified, future proof
-design. Moreover, we present a _unified_ design which unifies modules (in both
-the conventional and ML senses), classes, and interfaces under a single
-first-class umbrella. 
+This RFC proposes a wholesale redesign of Luna's syntax. It covers all aspects 
+of the language and aims to provide a design that is both unified and 
+future-proof. It also addresses the code modularity issue with a _unified_ 
+design that combines the notions of modules (in both the conventional and ML
+senses), classes, and interfaces under the umbrella of the first-class `type`.
 
-In doing so, the proposal supports a diversity of use-cases, allowing the 
-first-class manipulation of types, including the creation of anonymous types. In
-doing so, it provides users with first-class modularity for their code, and 
-intuitive mechanisms for working with types in Luna's type system. This concept
-thus brings a massive simplification to the Luna ecosystem, providing one 
-powerful mechanism to accomplish many key language features, without requiring
-the user to understand more than the mechanisms of `type`, and the principle
-behind Luna's type system.
-
-In the end, Luna's current module system is insufficient for serious development
-in the language, and needs to be replaced. In doing so, this RFC proposes to 
-take the time to bring a vast simplification to the language in the same swoop. 
+The syntax contained in this proposal supports a variety of diverse use-cases.
+It supports the first-class manipulation of types, including the creation of
+anonymous types. In doing so, the users of Luna have first-class modularity for
+their code, with intuitive mechanisms for working within Luna's type system. 
+This unification greatly simplifies Luna as a language, providing one powerful
+mechanism that results in many key language features, without requiring more 
+from the users than an understanding of `type` and the principles of Luna's type
+system.
 
 
 
-
-Design principles
+Design Principles
 =================
 It is impossible to re-design even small part of the syntax without considering
 almost every other design decision. Over the past years we have learned that the
@@ -223,7 +229,7 @@ possesses. These are first-class values in Luna, and can be created and
 manipulated at runtime. 
 
 
-### Why a new keyword? <!-- omit in toc -->
+#### Why a new keyword?
 While it would've been possible to use an existing keyword for this unified
 concept, we feel that existing keywords such as `module` and `class` carried too
 much baggage from their uses elsewhere. The chosen `type`, however, is very
@@ -1376,5 +1382,4 @@ the current time. Some examples include:
   pattern matching.
 - We definitely need further discussion on nested types.
 - Some syntax can likely be cleaned up.
-
 
