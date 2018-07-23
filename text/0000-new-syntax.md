@@ -16,28 +16,38 @@ Table of Contents
 - [Motivation](#motivation)
 - [Design principles](#design-principles)
     - [Invariants](#invariants)
-- [Type-System Primer (Brief)](#type-system-primer-brief)
-- [Reference-Level Explanation](#reference-level-explanation)
-    - [Type signatures](#type-signatures)
-    - [Lambda syntax](#lambda-syntax)
-    - [Function definitions ](#function-definitions)
+- [Type-System](#type-system)
+    - [Brief Introduction](#brief-introduction)
+    - [Types. Unified Classes, Modules and Interfaces](#types-unified-classes-modules-and-interfaces)
+- [New Syntax Reference](#new-syntax-reference)
     - [Naming rules](#naming-rules)
-    - [Unified Types, Modules and Interfaces](#unified-types-modules-and-interfaces)
-        - [Why a new keyword?](#why-a-new-keyword)
+    - [Type signatures](#type-signatures)
+    - [Functions](#functions)
+    - [Anonymous functions](#anonymous-functions)
+    - [Types as Classes](#types-as-classes)
         - [Constructors](#constructors)
-        - [Polymorphism](#polymorphism)
-        - [Method definition](#method-definition)
-        - [Generalized type definition](#generalized-type-definition)
+        - [Methods](#methods)
+        - [Constructors as types](#constructors-as-types)
+        - [Type combinators](#type-combinators)
         - [Pattern matching](#pattern-matching)
-        - [Modules](#modules)
+        - [Polymorphism](#polymorphism)
+        - [Generalized type definitions](#generalized-type-definitions)
+    - [Types as Modules](#types-as-modules)
             - [Files and modules](#files-and-modules)
         - [Interfaces](#interfaces)
             - [Implementing Interfaces](#implementing-interfaces)
-            - [On the Semantics of Standalone Implementations](#on-the-semantics-of-standalone-implementations)
-            - [Overlapping Interface Implementations](#overlapping-interface-implementations)
+    - [Imports](#imports)
+        - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
+    - [Anonymous Types](#anonymous-types)
+        - [Anonymous Types as Types](#anonymous-types-as-types)
+        - [Anonymous Types as Values](#anonymous-types-as-values)
+    - [Nested Types](#nested-types)
+    - [Example - Dependent Vector](#example---dependent-vector)
+    - [Example - Linked List](#example---linked-list)
+- [Unresolved Questions](#unresolved-questions)
     - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
     - [Modules / classes / interfaces](#modules--classes--interfaces)
-    - [Imports](#imports)
+    - [Imports](#imports-1)
     - [TODO:](#todo)
     - [Overview of the proposed design](#overview-of-the-proposed-design)
     - [Implementation notes](#implementation-notes)
@@ -171,8 +181,11 @@ Invariants
 
 
 
-Type-System Primer (Brief)
-==========================
+Type-System
+===========
+
+Brief Introduction
+------------------
 Luna's type system is based on the notion that each type is a name for a set of
 _values_ (denoted by _constructors_). This makes the type system a [Modular
 Lattice](https://en.wikipedia.org/wiki/Modular_lattice), if you're interested.
@@ -192,24 +205,137 @@ set with a single member. The resultant flexibility is very intuitive, and gives
 Luna a very useful type-system in practice, allowing a form of strong,
 structural typing.
 
-Luna provides a mechanism to join type sets, the so called pipe operator,
-allowing for example defining a type of numbers between 1 and 10 or any textual
-value as `type Foo = 1 | .. | 10 | Text`. Such a declaration can, of course,
-have constraints and type variables, much like any of the standard type
-declarations described later in this document. It cannot, however, provide
-explicit lists of implemented interfaces (TODO: explain it).
+
+
+Types. Unified Classes, Modules and Interfaces
+----------------------------------------------
+We propose to unify the abstraction of classes, modules and interfaces under a
+single first-class umbrella. All of the following functionalities are provided
+by a new `type` keyword, resulting in a highly flexible language construct: 
+
+- **Classes.** Types provide containers for data and associated behavior.
+- **Modules.** Types provide namespacing for code and data.
+- **Interfaces.** Types provide behavior description required of a type.
+
+At a fundamental level, the definition of a new `type` in Luna is the creation
+of a (usually named) category of values described by the data and behavior it
+possesses. These are first-class values in Luna, and can be created and 
+manipulated at runtime. 
+
+
+### Why a new keyword? <!-- omit in toc -->
+While it would've been possible to use an existing keyword for this unified
+concept, we feel that existing keywords such as `module` and `class` carried too
+much baggage from their uses elsewhere. The chosen `type`, however, is very
+explicit as it describes exactly what it does in Luna. Furthermore, with this
+proposal `module ~ class ~ interface`, and all are members of the type-universe
+`Type`, making it an even more appropriate choice. 
 
 
 
 
-
-Reference-Level Explanation
-===========================
+New Syntax Reference
+====================
 This design proposes a major breaking change for Luna, wholesale replacing 
 portions of the Language's syntax and semantics with an entirely new model. As a
 result, this RFC aims to describe the changes piece-by-piece, to help the 
 reader establish a more holistic idea of the design presented here. 
 
+
+
+Naming rules
+------------
+
+### Current problems <!-- omit in toc -->
+```haskell
+-- OLD SYNTAX --
+
+class Point:
+    x, y, z :: Real
+```
+
+Let's consider the above code written using old Luna syntax. It defines a new
+class (a new type) and an implicit constructor with the same name as the type.
+
+Currently all types and constructors start with an upper-case letter. This
+approach has one major issue, namely accessing constructors is more complex than
+it should be. The original idea assumes that we can access the constructor using
+qualified name, like `p = Point.Point 1 2 3 :: Point.Point 1 2 3 :: Point`.
+Other ideas proposed generating smart constructors starting with lower-case
+letter, however such named constructors cannot be easily distinguished from free
+variables in pattern expressions.
+
+In order to properly solve the problem, let's carefully analyse all needs and
+use cases. If we allow both constructor and type names to start with upper-case
+letter, then we have to allow for some syntax to create new type sets, like the
+following one:
+
+```haskell
+-- OLD SYNTAX --
+
+type Foo = Int | String
+a = 5 :: Foo
+```
+
+The pipe (`|`) is an ordinary operator used to join type sets. Based on the
+`{invariant:3}` the following code is correct as well, because we can refactor
+every type level expression to a variable:
+
+```haskell
+-- OLD SYNTAX --
+
+foo = Int | String
+a = 5 :: foo
+```
+
+Thus, without breaking the invariant we cannot guarantee that all type names
+will start with an upper-case letter.
+
+Even worse, it seems that such syntax allows creating functions named with
+capitalized first letter. The new type alias have to accept any valid type
+level expression, like `type Foo x = if x then Int else String`, so the
+following has to be accepted:
+
+```haskell
+-- OLD SYNTAX --
+
+type Sum a b = a + b
+def main: 
+    print (Sum 3 4)
+```
+
+Which clearly shows a flow in the design.
+
+
+### Proposed solution <!-- omit in toc -->
+The distinction between capitalized and uncapitalized names is often used to
+disambiguate the meaning of entities for the needs of pattern matching.
+
+In Luna the entities which we want to distinguish for the needs of pattern
+matching are constructors. All the other entities, including set types are just
+results of some expressions. In the light of these facts a very elegant solution
+emerges, namely only the constructor names will be capitalized, while everything
+else (including modules, interfaces, set types or functions) will use
+uncapitalized names. The proposed solution has many benefits:
+
+- Using upper case letters for constructors has important benefits. Whenever you
+  see an upper case identifier, you know it is a data structure being taken
+  apart or being constructed, which makes it much easier for a human to see what
+  is going on in a piece of code.
+
+- There are no more ambiguous syntax rules regarding new type / function
+  definition.
+
+- Construction and pattern matching is as simple as writing the right name and
+  does not require any magic from the compiler.
+
+We present formal definition for constructors and variable names below. They 
+will be used in later sections of this document.
+
+```
+consName = upperLetter, {nameChar}
+varName  = lowerLetter, {nameChar}
+```
 
 
 
@@ -222,7 +348,7 @@ Haskell related), is not used in math and is harder to type than just a single
 `:` mark.
 
 
-### The solution <!-- omit in toc -->
+### Proposed solution <!-- omit in toc -->
 We propose to replace the double colon operator `::` with a single colon one
 `:`. This change collides with current lambda syntax, however a change to lambda
 syntax is proposed in this document as well.
@@ -230,72 +356,8 @@ syntax is proposed in this document as well.
 
 
 
-Lambda syntax
--------------
-
-### Current problems <!-- omit in toc -->
-Consider the following simple function:
-
-```haskell
-def foo :: Int -> Int
-def foo a = a + 1
-```
-
-The problem with the definition is that the type level symbol `->` does not have
-any value level counterpart, which breaks the `{invariant:3}`. We can of course
-assume that it is a special syntax for a "function signature" constructor, but
-then its unnecessarily magical. Moreover, what value could have an expression 
-which type would be expressed as `a : a + 1`?
-
-
-### The solution <!-- omit in toc -->
-We propose unification of the value level lambda syntax `:` and the type level
-arrow syntax `->`. It makes the rules much more consistent. To better understand
-the concept, please refer to the following examples:
-
-```haskell
-foo : a -> b -> a + b
-foo = a -> b -> a + b
-
--- see the new function definition proposal
-bar : x -> x + 1
-bar x = x + 1
-```
-
-There is however one important thing to note here. The `:` symbol association
-rules were deeply magical. Only single variable on the left side was considered
-the lambda argument. Such design allows for a very fancy code snippets, but on
-the other hand is an exception to all other operator rules. After the
-unification, the arrow symbol `->` is just an ordinary operator and all the 
-standard association rules apply. Thus the following code snippets are 
-equivalent:
-
-```haskell
--- OLD SYNTAX --
-out = foo x: x + 1
-
--- NEW SYNTAX --
-out = foo (x -> x + 1)
-out = foo x-> x + 1 -- no space = strong association 
-```
-
-```haskell
--- OLD SYNTAX --
-cfg = open file . parse Config . catch error:
-    log.debug "Cannot open `file`: `error`"
-    defaultConfig
-
--- NEW SYNTAX --
-cfg = open file . parse Config . catch error->
-    log.debug "Cannot open `file`: `error`"
-    defaultConfig
-```
-
-
-
-
-Function definitions 
---------------------
+Functions
+---------
 
 ### Current problems <!-- omit in toc -->
 The are two problems with the current function definition syntax. The signature
@@ -380,7 +442,7 @@ def main:
 ```
 
 
-### The solution <!-- omit in toc -->
+### Proposed solution <!-- omit in toc -->
 We propose removing the `def` keyword in favor of using the assignment operator
 to define both variables as well as functions. Moreover, values defined in a new
 type declaration (every non-nested function) will have postponed effects by
@@ -414,191 +476,252 @@ test =
 
 
 
-
-Naming rules
-------------
+Anonymous functions
+-------------------
 
 ### Current problems <!-- omit in toc -->
-```haskell
--- OLD SYNTAX --
-
-class Point:
-    x, y, z :: Real
-```
-
-Let's consider the above code written using old Luna syntax. It defines a new
-class (a new type) and an implicit constructor with the same name as the type.
-
-Currently all types and constructors start with an upper-case letter. This
-approach has one major issue, namely accessing constructors is more complex than
-it should be. The original idea assumes that we can access the constructor using
-qualified name, like `p = Point.Point 1 2 3 :: Point.Point 1 2 3 :: Point`.
-Other ideas proposed generating smart constructors starting with lower-case
-letter, however such named constructors cannot be easily distinguished from free
-variables in pattern expressions.
-
-In order to properly solve the problem, let's carefully analyse all needs and
-use cases. If we allow both constructor and type names to start with upper-case
-letter, then we have to allow for some syntax to create new type sets, like the
-following one:
+Consider the following simple function:
 
 ```haskell
--- OLD SYNTAX --
-
-type Foo = Int | String
-a = 5 :: Foo
+def foo :: Int -> Int
+def foo a = a + 1
 ```
 
-The pipe (`|`) is an ordinary operator used to join type sets. Based on the
-`{invariant:3}` the following code is correct as well, because we can refactor
-every type level expression to a variable:
+The problem with the definition is that the type level symbol `->` does not have
+any value level counterpart, which breaks the `{invariant:3}`. We can of course
+assume that it is a special syntax for a "function signature" constructor, but
+then its unnecessarily magical. Moreover, what value could have an expression 
+which type would be expressed as `a : a + 1`?
+
+
+### Proposed solution <!-- omit in toc -->
+We propose unification of the value level lambda syntax `:` and the type level
+arrow syntax `->`. It makes the rules much more consistent. To better understand
+the concept, please refer to the following examples:
 
 ```haskell
--- OLD SYNTAX --
+foo : a -> b -> a + b
+foo = a -> b -> a + b
 
-foo = Int | String
-a = 5 :: foo
+-- see the new function definition proposal
+bar : x -> x + 1
+bar x = x + 1
 ```
 
-Thus, without breaking the invariant we cannot guarantee that all type names
-will start with an upper-case letter.
-
-Even worse, it seems that such syntax allows creating functions named with
-capitalized first letter. The new type alias have to accept any valid type
-level expression, like `type Foo x = if x then Int else String`, so the
-following has to be accepted:
+There is however one important thing to note here. The `:` symbol association
+rules were deeply magical. Only single variable on the left side was considered
+the lambda argument. Such design allows for a very fancy code snippets, but on
+the other hand is an exception to all other operator rules. After the
+unification, the arrow symbol `->` is just an ordinary operator and all the 
+standard association rules apply. Thus the following code snippets are 
+equivalent:
 
 ```haskell
 -- OLD SYNTAX --
+out = foo x: x + 1
 
-type Sum a b = a + b
-def main: 
-    print (Sum 3 4)
+-- NEW SYNTAX --
+out = foo (x -> x + 1)
+out = foo x-> x + 1 -- no space = strong association 
 ```
 
-Which clearly shows a flow in the design.
+```haskell
+-- OLD SYNTAX --
+cfg = open file . parse Config . catch error:
+    log.debug "Cannot open `file`: `error`"
+    defaultConfig
 
-
-### The solution <!-- omit in toc -->
-The distinction between capitalized and uncapitalized names is often used to
-disambiguate the meaning of entities for the needs of pattern matching.
-
-In Luna the entities which we want to distinguish for the needs of pattern
-matching are constructors. All the other entities, including set types are just
-results of some expressions. In the light of these facts a very elegant solution
-emerges, namely only the constructor names will be capitalized, while everything
-else (including modules, interfaces, set types or functions) will use
-uncapitalized names. The proposed solution has many benefits:
-
-- Using upper case letters for constructors has important benefits. Whenever you
-  see an upper case identifier, you know it is a data structure being taken
-  apart or being constructed, which makes it much easier for a human to see what
-  is going on in a piece of code.
-
-- There are no more ambiguous syntax rules regarding new type / function
-  definition.
-
-- Construction and pattern matching is as simple as writing the right name and
-  does not require any magic from the compiler.
+-- NEW SYNTAX --
+cfg = open file . parse Config . catch error->
+    log.debug "Cannot open `file`: `error`"
+    defaultConfig
+```
 
 
 
 
-Unified Types, Modules and Interfaces
--------------------------------------
-We propose to unify the abstraction of classes, modules and interfaces under a
-single first-class umbrella. All of the following functionalities are provided
-by `type`, resulting in a highly flexible language construct: 
-
-- **Classes.** Types provide containers for data and associated behavior.
-- **Modules.** Types provide namespacing for code and data.
-- **Interfaces.** Types provide behavior description required of a type.
-
-At a fundamental level, the definition of a new `type` in Luna is the creation
-of a (usually named) category of values described by the data and behavior it
-possesses. These are first-class values in Luna, and can be created and 
-manipulated at runtime. 
-
-
-### Why a new keyword?
-While it would've been possible to use an existing keyword for this unified
-concept, we feel that existing keywords such as `module` and `class` carried too
-much baggage from their uses elsewhere. The chosen `type`, however, is very
-explicit as it describes exactly what it does in Luna. Furthermore, with this
-proposal `module ~ class ~ interface`, and all are members of the type-universe
-`Type`, making it an even more appropriate choice. 
-
+Types as Classes
+----------------
+Luna is an Object Oriented programming language. It provides the notion of
+objects and methods so at first glance, Luna types may seem like conventional
+_classes_ from traditional object-oriented languages. However, these concepts
+differ significantly. Luna types have much more power, yet much simpler design,
+disallowing concepts like inheritance in favour of composition and algebraic
+data types.
 
 ### Constructors
-Type definition of a new type always starts with the `type` keyword.
-Constructors are a very special kind of types, they are the most primitive
-entity used to describe the set types. The constructor definition syntax
-expressed in EBNF is presented below:
+While types in Luna describe categories of values, the constructors are the
+values themselves. Constructors are used for defining new data structures
+containing zero or more values, so called fields. Formally, constructors are
+product types, a primitive building block of algebraic data types.
+
+A constructor definition starts with the `type` keyword followed by the
+constructor name and lists its fields by name with possible default values. It
+is possible to create unnamed fields by using wildcard symbol instead of the
+name. Constructors cannot be parametrized and their fields cannot be provided
+with explicit type annotations. The formal syntax description is presented
+below.
 
 ```
-consName  = upperLetter, {nameChar}
-varName   = lowerLetter, {nameChar}
 consDef   = "type" consName [{consField}]
 fieldName = varName | wildcard
 consField = fieldName ["=" value]
 ```
 
-In other words, constructor definitions lists all its fields by name with
-possible default values. It is also possible to create unnamed fields by using
-wildcard symbol instead of the name. Constructors cannot be parametrized and
-their fields cannot be provided with explicit type annotations. All standard
-layout rules apply, so the definitions can be distributed over several lines.
-All of the following examples show valid constructor definitions:
+Below we present code snippets with constructors definitions. Constructors with
+the same name are just alternative syntactic forms used to describe the same
+entity. We will refer to these definitions in later sections of this chapter.
+
 
 ```haskell
+-- Boolean values
 type True
 type False
-bool = True | False
-```
 
-```haskell
+-- Structure containing two unnamed fields
+type Tuple _ _
+
+-- Alternative Point definitions:
 type Point x y z
-```
 
-```haskell
 type Point (x = 0) (y = 0) (z = 0)
-point a = Point a a a
-```
 
-```haskell
 type Point x=0 y=0 z=0
-```
 
-```haskell
 type Point 
     x = 0 
     y = 0
     z = 0
 ```
 
+
+### Methods
+A method is a function associated with a given constructor. The primitive method
+definition syntax is very similar to function definition, however it also
+includes the constructor in its head:
+
 ```haskell
-type Tuple _ _
+True.not  = False
+False.not = True
+Point x y z . length = (x^2 + y^2 + z^2).sqrt
+Tuple a b . swap = Tuple b a
 ```
 
+Most often methods are defined in the same module as the appropriate
+constructors. Please refer to sections about interfaces and extension methods to
+learn more about other possibilities.
+
+
+### Constructors as types
+As Luna is a dependently-typed language with no distinction between value- and
+type-level syntax, we are allowed to write _very_ specific type for a given
+value. As described earlier, constructors are the values belonging to categories
+defined by Luna types. However, they are not only members of categories, they
+are also useful to describe very specific categories per se. Formally,
+a constructor is capable of describing any subset of the set of all possible
+values of its fields. 
+
+For example, the `True` constructor could be used to describe the set of all
+possible values of its fields. While it does not have any fields, the set
+contains only two value, the `True` constructor itself and an `undefined` value.
+Thus it is correct to write in Luna `True : True` and assume that the only
+possible values of a variable typed as `a : True` are either `True` or
+`undefined`.
+
+On the other hand, The `Point` constructor do contain fields, thus it could be
+used for example to describe all possible points, whose first coordinate is an
+integral number, while the second and third coordinates are equal to zero: `a :
+Point int 0 0`. 
+
+
+### Type combinators 
+The careful reader will notice here, that `int` is a category of all possible
+integral numbers, while the numbers are considered constructors themselves. Luna
+provides an operator used to join types together, the so called pipe operator.
+The hypothetical `int` definition could look like `int = .. | -1 | 0 | 1 | ...`.
+We can use this mechanism to easily express even complex type dependencies. For
+example we can tell Luna that a particular value has the type of `int | text`.
+Luna will allow us to either use pattern matching to discover at runtime which
+type are we really dealing with or will allow to use only methods which have
+common interface among all constructors described by the type. It will for
+example allow us to print such value to the screen.
+
+
+### Pattern matching
+The proposed syntax changes allow us to improve pattern matching rules and make
+them much more understandable, especially for new users. As we have described
+earlier, there is no need to use qualified constructor names or special cases in
+patterns anymore. Moreover, a new form of pattern matching is introduced, the so
+called "type pattern matching". 
+
+While constructors allow combining fields into a single structure and type
+combinators allow joining types into more general ones, the pattern matching
+mechanism allows going the opposite direction. In the most common use case
+pattern matching will be performed during runtime, however it is worth to note
+that the Luna compiler has enough information to perform pattern matching during
+compilation if the appropriate values could be deduced in the compilation
+process. There are two forms of pattern matching, namely constructor pattern
+matching and generalized type pattern matching. The former syntax is practically
+identical to the existing one, while the later uses the `type` keyword to denote
+that we are performing pattern matching on type descriptor. Let's see how the
+new syntax looks like in practice:
+
+```haskell
+type shape a
+    type Circle
+        radius :: a
+
+    type Rectangle 
+        width  :: a 
+        height :: a
+
+
+main = 
+    c1 = Circle 5 :: shape int
+    v  = if something then c1 else 0
+
+    print case v of
+        Circle r   -> 'it is circle'
+        type shape -> 'it is other shape'
+        _          -> 'it is something else'
+
+    print case v of type
+        shape -> 'it is shape'
+        int   -> 'it is int'
+
+```
+
+
 ### Polymorphism
-Please pay special attention to the `point` definition above. This is the most
-basic form of polymorphic type definition in Luna. Constructors could be used as
-types in Luna to describe a set of values that could be created using this
-particular constructor. Sometimes this relation is very simple, for example the
-only value of type `True` could be `True` itself. However, the type `Point int
-int int` has many possible values, including `Point 1 2 3` or `Point int int
-int`. The `point` function is just an alias for the `Point` constructor, thus 
-the following lines are all valid:
+Formally polymorphism is the provision of a single interface to entities of
+different types. Luna does not provide any special construction to support
+polymorphism, because even very complex polymorphic types could be described
+just by using type-level functions. Consider the following example code:
+
+```haskell
+type Point x y z
+point a = Point a a a
+
+main =
+    p1 = Point 1 2 3 :: point int
+    print p1
+```
+
+The `point` function is the most basic form of polymorphic type definition in
+Luna. It defines all such sets of points, whose all components belong to the
+provided type. To better understand this relation, please consider the following valid expressions:
 
 ```haskell
 p1 = Point 1 2 3 : Point 1 2 3
 p1 = Point 1 2 3 : Point int int int
 p1 = Point 1 2 3 : point int
+
+Point 1 2 3 : Point 1 2 3 : Point int int int : point int
 ```
 
-This is a very flexible mechanism, allowing expressing even complex ideas in a 
-simple and flexible manner. An example is always worth more than 
-1000 words, so please consider the following usage:
+This is a very flexible mechanism, allowing expressing even complex ideas in a
+simple and flexible manner. An example is always worth more than 1000 words, so
+please consider yet another example usage:
 
 ```haskell 
 taxiDistance : point real -> point real -> real 
@@ -610,34 +733,18 @@ main =
 ```
 
 
-### Method definition
-The most basic method definition syntax is by defining them directly on
-constructors:
 
-```haskell
-True.not  = False
-False.not = True
-Point x y z . length = (x^2 + y^2 + z^2).sqrt
-Tuple a b . swap = Tuple b a
-```
+### Generalized type definitions
+While we can define constructors, methods and compose them to create more
+powerful types using the described methods, such definitions require significant
+amount of code and do not reflect the real dependencies between the definitions.
+This is the reason why Luna provides a syntactic sugar allowing to define
+everything we have learned so far in more concise form. 
 
-It is also possible to define methods on set types:
-
-```haskell
-bool.not = case self of
-    True  -> False
-    False -> True
-```
-
-Most often methods are defined in the same module as the appropriate
-constructors. Please refer to sections about interfaces and extension methods to
-learn more about other possibilities.
-
-
-### Generalized type definition
-Generalized type definition is a syntactic sugar allowing for an easy way to
-define multiple constructors, set types and related methods. The generalized
-type definition syntax expressed in EBNF is presented below:
+It is worth emphasizing that generalized type definitions are only a simpler way
+to define multiple constructors, combine them into a common type and define
+common methods. They do not provide any additional value or functionality. The
+generalized type definition syntax is presented below:
 
 ```
 typeDef = "type" varName [":" interface] [({consDef} | {consField})] [method]
@@ -673,11 +780,11 @@ type tuple a b
     swap = Tuple b a
 ```
 
-Do not be deceived by the similarity of these definitions and _classes_ from
-traditional object-oriented languages. While these concepts share many common
-ideas, they also differ significantly. For example, Luna does not have a notion
-of inheritance nor super-classes. On the other hand, Luna types have
-significantly more power.
+While using this form we define common methods on a set of constructors, like
+the method `not` and we use pattern matching to chose the right algorithm path,
+this approach does not have any performance penalties, because the compiler is
+provided with enough information to optimize this check away if the value was
+known at compile time. 
 
 One important thing to note here is that if you don't define any explicit 
 constructors, an implicit one will be generated automatically and will be named 
@@ -685,66 +792,34 @@ the same way as the type but starting with an upper-letter instead. Now we can
 use the above definitions as follow:
 
 ```haskell
-main = 
-    check = True
+test check = 
     p1 = Point 1 2 3 : point int
     p2 = Point 4 5 6 : point real
     px = if check then p1 else p2
     print px.length
 ```
 
-
-### Pattern matching
-The above changes allow us to improve pattern matching rules and make them much
-more understandable, especially for new users. As we have described earlier,
-there is not need to use qualified constructor names nor special cases in
-patterns anymore. Moreover, a new form of pattern matching is introduced, the so
-called "type pattern matching". Basically, we can pattern match against set
-types (in particular interfaces) by using the `type` keyword. We can also use a
-special construction of `case x of type ...` to pattern match on set types only.
-Let's see how the new syntax looks like in practice:
-
-```haskell
-
-type shape a
-    type Circle
-        radius :: a
-
-    type Rectangle 
-        width  :: a 
-        height :: a
-
-
-main = 
-    c1 = Circle 5 :: shape int
-    v  = if something then c1 else 0
-
-    print case v of
-        Circle r   -> 'it is circle'
-        type shape -> 'it is other shape'
-        _          -> 'it is something else'
-
-    print case v of type
-        shape -> 'it is shape'
-        int   -> 'it is int'
-
-```
+**Bonus question**  
+What is the most concrete type of the `px` variable above if we do not have any
+information about the value of `check`? The answer is of course `px : (Point 1 2
+3 | Point 4 5 6)`, which is a sub type of the type `Point (1|4) (2|5) (3|6)`. 
 
 
 
-### Modules
+
+Types as Modules
+----------------
 The same notion of a type can be used to provide the functionality that is
 traditionally expected of a _module_ (in the common, not ML sense). In most
 programming languages, their module system provides a mechanism for code-reuse
-through grouping and namespacing. 
+through grouping and namespacing. Indeed, Luna's types provide both of these functionalities:
 
-Indeed, Luna's types provide both of these functionalities:
-
-- **Grouping of Code.** A `type` declaration in Luna acts as a container for
-  code, with functions able to be declared in its scope. 
-- **Namespacing.** Unless otherwise declared (through a direct import
-  statement), a `type` in Luna also provides a namespace to constructs declared
-  inside its scope.
+- **Grouping of Code**  
+  A `type` declaration in Luna acts as a container for code, with functions able
+  to be declared in its scope. 
+- **Namespacing**  
+  Unless otherwise declared (through a direct import statement), a `type` in
+  Luna also provides a namespace to constructs declared inside its scope.
 
 These are both best illustrated by example. Consider the following type. If it
 is imported simply as `import math` (see [Importing Types](#importing-types)),
@@ -807,22 +882,28 @@ For more information on the last example, please read the section on
 [anonymous types](#anonymous-types).
 
 #### Implementing Interfaces
+TODO: This section needs discussion. It is a very draft proposal for now.
+
 The nature of Luna's type system means that any type that _satisfies_ an 
 interface, even without explicitly implementing it, will be able to be used in
 places where that interface is expected. However, in the cases of named 
 interfaces (not [anonymous types](#anonymous-types)), it is a compiler warning 
-to do so. 
+to do so. (TODO: Explain why. What bad would happen otherwise?)
 
 You can explicitly implement an interface in two ways. Examples of both can be
 found at the end of the section.
 
-1. **Implementation on the Type:** Interfaces can be directly implemented as 
-   part of the type's definition. In this case the type header is annotated with
-   `: InterfaceName` (and filled type parameters as appropriate). The interface
-   can then be used (if it has a default implementation), or the implementation
-   can be provided in the type body. 
-2. **Standalone Implementation:** Interfaces can be implemented for types in a
-   standalone implementation block. These take the form of `instance Interface for Type`, with any type parameters filled appropriately. 
+1. **Implementation on the Type**  
+   Interfaces can be directly implemented as part of the type's definition. In
+   this case the type header is annotated with `: InterfaceName` (and filled
+   type parameters as appropriate). The interface can then be used (if it has a
+   default implementation), or the implementation can be provided in the type
+   body. 
+
+2. **Standalone Implementation:**  
+   Interfaces can be implemented for types in a standalone implementation block.
+   These take the form of `instance Interface for Type`, with any type
+   parameters filled appropriately. 
 
 Both of these methods will support extension to automatic deriving strategies in
 future iterations of the Luna compiler. 
@@ -831,40 +912,39 @@ It should also be noted that it is not possible to implement orphan instances of
 interfaces in Luna, as it leads to difficult to understand code. This means that
 an interface must either be implemented in the same file as the interface 
 definition, or in the same file as the definition of the type for which the
-interface is being implemented.
+interface is being implemented. (TODO: To be discussed)
 
 Consider an interface `PrettyPrinter` as follows, which has a default 
 implementation for its `prettyPrint` method. 
 
-```
-type (a : Textual) => PrettyPrinter a b =
-    prettyPrint : b -> a
-    prettyPrint item = baseShow item
+```haskell
+type (t : Textual) => PrettyPrinter t =
+    prettyPrint : t
+    prettyPrint = self.show
 ```
 
 For types we own, we can implement this interface directly on the type. Consider
 this example `Point` type.
 
-```
-type Point : PrettyPrinter Text Point = 
+```haskell
+type Point : PrettyPrinter Text 
     x : Double
     y : Double
     z : Double
 
-    prettyPrint : Point -> Text
-    prettyPrint self = ...
+    prettyPrint : Text
+    prettyPrint = ...
 ```
 
 If we have a type defined in external library that we want to pretty print, we
 can define a standalone instance instead. Consider a type `External`.
 
-```
-instance PrettyPrint Text External for External =
-    prettyPrint : External -> Text
-    prettyPrint ext = ...
+```haskell
+instance PrettyPrint Text for External =
+    prettyPrint = ...
 ```
 
-#### On the Semantics of Standalone Implementations
+<!-- #### On the Semantics of Standalone Implementations
 Standalone implementations allow for limited extension methods on types. The
 interface methods implemented for a type in the standalone definition can be 
 used like any other method on a Luna type. 
@@ -882,7 +962,7 @@ ambiguous. Consider the following example, using the `PrettyPrinter` interface
 defined above. 
 
 ```
-type Point2D : PrettyPrinter Text Point2D, PrettyPrinter ByteArray Point2D =
+type Point2D : PrettyPrinter Text | PrettyPrinter ByteArray =
     x : Double
     y : Double
 
@@ -897,12 +977,159 @@ loggerFn msg item = msg <> prettyPrint(Text) item
 ```
 
 As you can see, the syntax for specifying the instance in the ambiguous case 
-uses parentheses to apply the type to the `prettyPrint` function. 
+uses parentheses to apply the type to the `prettyPrint` function.  -->
 
 
 
 
+## Imports
+To go along with the new system proposed in this RFC around code modularity, 
+the syntax for dealing with imports has been tweaked slightly. The following
+import syntaxes are valid:
 
+- **Direct Imports:** These import the primary module from the file. This brings
+  the type and its constructors into scope. For example `import Data.Map` would
+  bring `Map` and its constructors into scope.
+- **Specified Imports:** These allow the specification of additional functions
+  to be brought into the current scope. For example `import Data.Map: fromList`
+  would bring `Map`, its constructors and `fromList` into scope.
+- **Renamed Imports:** These allow for the programmer to rename the imported
+  type. For example `import Data.Containers.Map as MapInterface` brings `Map`
+  into scope named as `MapInterface`. Here, constructors are also imported.
+- **Specialised Imports:** These allow the programmer to specialise type 
+  arguments as part of the import. For example `import Data.Map String` will
+  import `Map` and its constructors with their first type arguments specialised
+  to `String`.
+
+These above import styles can be combined, for example renaming a partially
+specialised import (`import Data.Map String as StringMap`), or specialising
+functions imported into scope (`import Data.Map String: fromList`). Much like 
+curried type application seen elsewhere in this proposal, it is possible to 
+partially apply the type arguments of an import, as seen above. 
+
+<!-- #### The File Scope
+Files in Luna should contain at least one `type`, with one type named the same
+as the file. This `type` is known as the 'primary' type, and it is this type
+that is referred to when importing the 'module'. A file `Data/Map.luna` may 
+contain `type Map`, `type Helper` and various other types, but the only things
+visible outside the file are the primary type and things defined in its scope.
+Inside the file, however, everything can be seen, with no need to 
+forward-declare. -->
+
+### Scoping Rules and Code Modularity
+Imports in Luna can be performed in _any_ scope, and are accessible from the 
+scope into which they are imported. This gives rise to a particularly intuitive
+way of handling re-exports. 
+
+Consider the following file `Test.luna`. In this file, the imports of `Thing`
+and `PrettyPrint` are not visible when `Test.luna` is imported. However, 
+`PrettyPrint` and `printer` are made visible from within the scope of `Test`. This means that a user can write `import Test: printer` and have it work. 
+
+```
+import Experiment.Thing
+import Utils.PrettyPrint
+
+type Test a : PrettyPrint Text (Test a) =
+    import Utils.PrettyPrint: printer 
+
+    runTest : a -> Text
+    runTest test = ...
+
+    prettyPrint : Test a -> Text
+    prettyPrint self = ...
+```
+
+## Anonymous Types
+In addition to the syntax proposed above in [Declaring Types](#declaring-types),
+this RFC also proposes a mechanism for quickly declaring anonymous types. These 
+types are anonymous in that they provide a category of values without applying 
+a name to their category, and can be created both as types and as values. 
+
+While it is possible to use the primary type declaration syntax without 
+providing an explicit name, this is highly impractical for most places where an
+anonymous type becomes useful. This shorthand provides a way to get the same
+benefit without the syntactic issues of the former. 
+
+### Anonymous Types as Types
+When used in a type context, an anonymous type acts as a specification for an
+interface that must be filled. This specification can contain anything from
+types to names, and features its own syntax for inline declarations. 
+
+Consider the following examples:
+
+- `{Int, Int, Int}`: This type declares a set of values where each value 
+  contains three integers. 
+- `{Int, foo : Self -> Int}`: This type declares a set of values with an integer
+  and a function from `Self` to an Integer with name `foo`.
+- `{Self -> Text -> Text}`: This defines an unnamed function. This may seem
+  useless at first, but the input argument can be pattern-matched on as in the
+  following example:
+
+    ```
+    foo : { Int, Int, Self -> Int } -> Int
+    foo rec@{x, y, fn} = fn rec
+    ```
+
+`Self` is a piece of reserved syntax that allows anonymous types to refer to 
+their own type without knowing its name.
+
+### Anonymous Types as Values
+Anonymous types can also be constructed as values using similar syntax. You can provide values directly, which will work in a context where names are not 
+required, or you can provide named values as in the following examples:
+
+- `{0, 0}`: This anonymous value will work anywhere a type with two numbers and 
+  no other behaviour is expected.
+- `{x = 0, y = 0, z = 0}`: This one provides explicit names for its values, and
+  will work where names are required.
+- `{x = 0, fn = someFunction}`: This will also work, defining the value for `fn`
+  by use of a function visible in the scope. 
+- `{x = 0, fn = (f -> pure f)}`: Lambda functions can also be used.
+
+
+
+
+## Nested Types
+As any kind of language construct can be nested inside a `type`, we are able to
+nest types arbitrarily in Luna. This leads to a very expressive language, but
+the semantics of such nested types need careful attention.
+
+This RFC proposes that a nested type becomes a separate type held by each 
+_instance_ of a type. This means that `foo.A != bar.A`, where `foo : Foo` and 
+`bar : Foo`. The benefits of doing this means that you have true associated 
+types, rather than just types contained by other types. 
+
+## Example - Dependent Vector
+```
+type (n : Nat) => Vector n a =
+    # Constructor
+    vector : (n = 1 : Nat)
+
+    # The parameter name is visible at the 'type level', allowing dependent type
+    mkVec : Nat -> Vector n a
+    mkVec (n = 1) = ...
+```
+
+## Example - Linked List
+This example uses currently forbidden syntax for declaring operators, but let's
+pretend it works.
+
+```
+type List a = 
+    nil 
+    cons a (List a)
+
+    (:) = cons
+    []  = nil
+```
+
+# Unresolved Questions
+This section should address any unresolved questions you have with the RFC at 
+the current time. Some examples include:
+
+- We definitely need further discussion on the situation with constructors and
+  pattern matching.
+- We definitely need further discussion on nested types.
+- Some syntax can likely be cleaned up.
 
 
 
@@ -951,7 +1178,7 @@ helper =
 ``` 
 
 
-### The solution <!-- omit in toc -->
+### Proposed solution <!-- omit in toc -->
 We are not convinced that code blocks should become a first class citizen.
 Definitely more real-life examples are needed to judge if Luna will benefit from
 their introduction or they will contribute to lower code quality instead. Deeply
