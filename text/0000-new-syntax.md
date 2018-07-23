@@ -23,7 +23,10 @@ Table of Contents
     - [Naming rules](#naming-rules)
     - [Type signatures](#type-signatures)
     - [Functions](#functions)
-    - [Anonymous functions](#anonymous-functions)
+        - [Function declaration](#function-declaration)
+        - [Named arguments](#named-arguments)
+        - [Default arguments](#default-arguments)
+        - [Anonymous functions](#anonymous-functions)
     - [Types as Classes](#types-as-classes)
         - [Constructors](#constructors)
         - [Methods](#methods)
@@ -33,9 +36,10 @@ Table of Contents
         - [Polymorphism](#polymorphism)
         - [Generalized type definitions](#generalized-type-definitions)
     - [Types as Modules](#types-as-modules)
-            - [Files and modules](#files-and-modules)
-        - [Interfaces](#interfaces)
-            - [Implementing Interfaces](#implementing-interfaces)
+        - [Files and modules](#files-and-modules)
+        - [Module Examples](#module-examples)
+    - [Types as Interfaces](#types-as-interfaces)
+        - [Implementing Interfaces](#implementing-interfaces)
     - [Imports](#imports)
         - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
     - [Anonymous Types](#anonymous-types)
@@ -44,15 +48,11 @@ Table of Contents
     - [Nested Types](#nested-types)
     - [Example - Dependent Vector](#example---dependent-vector)
     - [Example - Linked List](#example---linked-list)
-- [Unresolved Questions](#unresolved-questions)
     - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
-    - [Modules / classes / interfaces](#modules--classes--interfaces)
-    - [Imports](#imports-1)
     - [TODO:](#todo)
-    - [Overview of the proposed design](#overview-of-the-proposed-design)
     - [Implementation notes](#implementation-notes)
-        - [Types as Generics](#types-as-generics)
         - [To be done](#to-be-done)
+- [Unresolved Questions](#unresolved-questions)
 
 
 
@@ -359,7 +359,8 @@ syntax is proposed in this document as well.
 Functions
 ---------
 
-### Current problems <!-- omit in toc -->
+### Function declaration
+#### Current problems <!-- omit in toc -->
 The are two problems with the current function definition syntax. The signature
 definition starting with the `def` keywords looks awkward and in some situations
 there are multiple ways to define the same thing, which leads to confusion and
@@ -442,7 +443,7 @@ def main:
 ```
 
 
-### Proposed solution <!-- omit in toc -->
+#### Proposed solution <!-- omit in toc -->
 We propose removing the `def` keyword in favor of using the assignment operator
 to define both variables as well as functions. Moreover, values defined in a new
 type declaration (every non-nested function) will have postponed effects by
@@ -475,11 +476,13 @@ test =
 ```
 
 
+### Named arguments
+### Default arguments
 
-Anonymous functions
--------------------
 
-### Current problems <!-- omit in toc -->
+### Anonymous functions
+
+#### Current problems <!-- omit in toc -->
 Consider the following simple function:
 
 ```haskell
@@ -494,7 +497,7 @@ then its unnecessarily magical. Moreover, what value could have an expression
 which type would be expressed as `a : a + 1`?
 
 
-### Proposed solution <!-- omit in toc -->
+#### Proposed solution <!-- omit in toc -->
 We propose unification of the value level lambda syntax `:` and the type level
 arrow syntax `->`. It makes the rules much more consistent. To better understand
 the concept, please refer to the following examples:
@@ -542,6 +545,13 @@ cfg = open file . parse Config . catch error->
 
 Types as Classes
 ----------------
+The following chapter describes the replacement for the currently used concept
+of _classes_. We have been always dreaming about true dependent typed language
+and the way classes currently work stands on the way to achieve the dreams. The
+change is, however, not as drastic as it seems. It is rather a process of
+extending the current model to provide more fine grained control over the
+objects and types.
+
 Luna is an Object Oriented programming language. It provides the notion of
 objects and methods so at first glance, Luna types may seem like conventional
 _classes_ from traditional object-oriented languages. However, these concepts
@@ -733,7 +743,6 @@ main =
 ```
 
 
-
 ### Generalized type definitions
 While we can define constructors, methods and compose them to create more
 powerful types using the described methods, such definitions require significant
@@ -815,16 +824,34 @@ programming languages, their module system provides a mechanism for code-reuse
 through grouping and namespacing. Indeed, Luna's types provide both of these functionalities:
 
 - **Grouping of Code**  
-  A `type` declaration in Luna acts as a container for code, with functions able
-  to be declared in its scope. 
+  A `type` declaration acts as a container for code, with functions able to be
+  declared in its scope. 
 - **Namespacing**  
   Unless otherwise declared (through a direct import statement), a `type` in
   Luna also provides a namespace to constructs declared inside its scope.
 
-These are both best illustrated by example. Consider the following type. If it
+
+### Files and modules
+Files in Luna should contain at least one `type` definition, with one type named
+the same as the file. This `type` is known as the 'primary' type, and it is this
+type that is referred to when importing the 'module'. A file `data/map.luna` may
+contain `type map`, `type helper` and various other types, but the only things
+visible outside the file are the primary type and things defined or imported
+into its scope. Inside the file, however, everything can be seen, with no need
+to forward-declare.
+
+
+### Module Examples
+The concepts are best illustrated by example. Consider the following type. If it
 is imported simply as `import math` (see [Importing Types](#importing-types)),
 then `pi` value is only accessible within the scope of `math` (by using
 `math.pi`). 
+
+However, please note that `math.pi` is not some kind of a special construct for
+a qualified data access. The `math` is a zero-argument constructor of the `math`
+module (type). The expression `math.pi` is creating the module object and then
+accessing its `pi` field. Of course such creation would be optimized away during
+the compilation process.
 
 File `math.luna`:
 ```haskell
@@ -839,17 +866,10 @@ type main
     main = print math.pi
 ```
 
-#### Files and modules
-Files in Luna should contain at least one `type` definition, with one type named
-the same as the file. This `type` is known as the 'primary' type, and it is this
-type that is referred to when importing the 'module'. A file `data/map.luna` may
-contain `type map`, `type helper` and various other types, but the only things
-visible outside the file are the primary type and things defined or imported
-into its scope. Inside the file, however, everything can be seen, with no need
-to forward-declare.
 
 
-### Interfaces
+Types as Interfaces
+-------------------
 A type in Luna can also act as a 'contract', a specification of the behavior 
 expected of a type. The use of types as interfaces in Luna is, as you might 
 expect, contravariant. As long as the type satisfies the category defined by
@@ -881,7 +901,7 @@ type Interface3 a = { foo : a -> a }
 For more information on the last example, please read the section on
 [anonymous types](#anonymous-types).
 
-#### Implementing Interfaces
+### Implementing Interfaces
 TODO: This section needs discussion. It is a very draft proposal for now.
 
 The nature of Luna's type system means that any type that _satisfies_ an 
@@ -1122,16 +1142,6 @@ type List a =
     []  = nil
 ```
 
-# Unresolved Questions
-This section should address any unresolved questions you have with the RFC at 
-the current time. Some examples include:
-
-- We definitely need further discussion on the situation with constructors and
-  pattern matching.
-- We definitely need further discussion on nested types.
-- Some syntax can likely be cleaned up.
-
-
 
 
 
@@ -1212,14 +1222,6 @@ result = State.run Map.empty do
 
 
 
-## Modules / classes / interfaces 
-TO BE MERGED WITH MODULES PROPOSAL
-
-
-
-## Imports 
-TO BE MERGED WITH MODULES PROPOSAL
-
 ## TODO:
 - extension methods (including imports to local scope and local scope overriding)
 - default arguments (definition, evaluation, explicite currying)
@@ -1228,7 +1230,7 @@ TO BE MERGED WITH MODULES PROPOSAL
 - dynamic types
 - unnamed multiline types
 
-
+<!-- 
 ## Overview of the proposed design
 
 Let's discuss the proposed design based on a comparison with the old one:
@@ -1287,7 +1289,7 @@ Sample code using the proposed syntax design:
 21 |     print "Results:"
 22 |     results.each [k,v]->
 23 |         print "`k`: `v`"
-```
+``` -->
 
 
 
@@ -1304,7 +1306,7 @@ runtime representation.
 
 
 
-
+<!-- 
 
 ### Types as Generics
 To start off, types in Luna can be made _generic_ over other types. This can be
@@ -1356,7 +1358,7 @@ efficientMap k v =
     else treeMap k v
 
 myMap = empty : efficientMap k v
-```
+``` -->
 
 
 
@@ -1364,3 +1366,15 @@ myMap = empty : efficientMap k v
 ### To be done
 - Discuss the look and feel of type constraints (`type (n : Nat) => Vector n a`)
 - Describe the "GADT" style
+
+
+# Unresolved Questions
+This section should address any unresolved questions you have with the RFC at 
+the current time. Some examples include:
+
+- We definitely need further discussion on the situation with constructors and
+  pattern matching.
+- We definitely need further discussion on nested types.
+- Some syntax can likely be cleaned up.
+
+
