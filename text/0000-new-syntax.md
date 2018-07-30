@@ -13,55 +13,58 @@ Table of Contents
 
 <!-- MarkdownTOC Style autolink="true" levels="1,2,3" -->
 
+- [Table of Contents](#table-of-contents)
 - [Summary](#summary)
 - [Motivation](#motivation)
 - [Design Principles](#design-principles)
-  - [Invariants](#invariants)
+    - [Invariants](#invariants)
 - [Type-System](#type-system)
-  - [Brief Introduction](#brief-introduction)
-  - [Types. Unified Classes, Modules and Interfaces](#types-unified-classes-modules-and-interfaces)
+    - [Brief Introduction](#brief-introduction)
+    - [Types. Unified Classes, Modules and Interfaces](#types-unified-classes-modules-and-interfaces)
 - [New Syntax Reference](#new-syntax-reference)
-  - [Naming rules](#naming-rules)
-    - [Current problems](#current-problems)
-    - [Proposed solution](#proposed-solution)
-  - [Type signatures](#type-signatures)
-    - [Current problems](#current-problems-1)
-    - [Proposed solution](#proposed-solution-1)
-  - [Functions](#functions)
-    - [Function declaration](#function-declaration)
-    - [Named arguments](#named-arguments)
-    - [Default arguments](#default-arguments)
-    - [Anonymous functions](#anonymous-functions)
-  - [Types as Classes](#types-as-classes)
-    - [Constructors](#constructors)
-    - [Methods](#methods)
-    - [Constructors as types](#constructors-as-types)
-    - [Type combinators](#type-combinators)
-    - [Pattern matching](#pattern-matching)
-    - [Polymorphism](#polymorphism)
-    - [Generalized type definitions](#generalized-type-definitions)
-  - [Types as Modules](#types-as-modules)
-    - [Files and modules](#files-and-modules)
-    - [Module Examples](#module-examples)
-  - [Types as Interfaces](#types-as-interfaces)
-    - [Implementing Interfaces](#implementing-interfaces)
-  - [Imports](#imports)
-    - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
-  - [Anonymous Types](#anonymous-types)
-    - [Anonymous Types as Types](#anonymous-types-as-types)
-    - [Anonymous Types as Values](#anonymous-types-as-values)
-  - [Nested Types](#nested-types)
-  - [Example - Dependent Vector](#example---dependent-vector)
-  - [Example - Linked List](#example---linked-list)
-  - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
-    - [Current problems](#current-problems-2)
-    - [Proposed solution](#proposed-solution-2)
-  - [TODO:](#todo)
-  - [Overview of the proposed design](#overview-of-the-proposed-design)
-  - [Implementation notes](#implementation-notes)
-    - [Types as Generics](#types-as-generics)
-    - [To be done](#to-be-done)
+    - [Naming rules](#naming-rules)
+    - [Type signatures](#type-signatures)
+    - [Functions](#functions)
+        - [Function declaration](#function-declaration)
+        - [Named arguments](#named-arguments)
+            - [Special unnamed type provider syntax](#special-unnamed-type-provider-syntax)
+            - [Special unnamed type provider syntax 2](#special-unnamed-type-provider-syntax-2)
+            - [Special arrows](#special-arrows)
+        - [Default arguments](#default-arguments)
+        - [Anonymous functions](#anonymous-functions)
+    - [Types as Classes](#types-as-classes)
+        - [Constructors](#constructors)
+        - [Methods](#methods)
+        - [Constructors as types](#constructors-as-types)
+        - [Type combinators](#type-combinators)
+        - [Pattern matching](#pattern-matching)
+        - [Polymorphism](#polymorphism)
+        - [Generalized type definitions](#generalized-type-definitions)
+    - [Types as Modules](#types-as-modules)
+        - [Files and modules](#files-and-modules)
+        - [Module Examples](#module-examples)
+    - [Types as Interfaces](#types-as-interfaces)
+        - [Implementing Interfaces](#implementing-interfaces)
+    - [Imports](#imports)
+        - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
+    - [Anonymous Types](#anonymous-types)
+        - [Anonymous Types as Types](#anonymous-types-as-types)
+        - [Anonymous Types as Values](#anonymous-types-as-values)
+    - [Nested Types](#nested-types)
+    - [Example - Dependent Vector](#example---dependent-vector)
+    - [Example - Linked List](#example---linked-list)
+    - [First-class sequential code blocks.](#first-class-sequential-code-blocks)
+    - [TODO:](#todo)
+    - [Implementation notes](#implementation-notes)
+        - [To be done](#to-be-done)
 - [Unresolved Questions](#unresolved-questions)
+- [Appendix](#appendix)
+    - [Choosing the right syntax](#choosing-the-right-syntax)
+            - [Solution 1: Capitalized constructors](#solution-1-capitalized-constructors)
+            - [Solution 2: Capitalized monomorphic types](#solution-2-capitalized-monomorphic-types)
+            - [Solution 2.1. Capitalized functions whose final value is a type](#solution-21-capitalized-functions-whose-final-value-is-a-type)
+            - [Solution 2.2. Capitalized monomorphic types, new function syntax](#solution-22-capitalized-monomorphic-types-new-function-syntax)
+            - [Solution 3. Capitalized matches](#solution-3-capitalized-matches)
 
 <!-- /MarkdownTOC -->
 
@@ -229,7 +232,7 @@ possesses. These are first-class values in Luna, and can be created and
 manipulated at runtime. 
 
 
-#### Why a new keyword?
+#### Why a new keyword? <!-- omit in toc -->
 While it would've been possible to use an existing keyword for this unified
 concept, we feel that existing keywords such as `module` and `class` carried too
 much baggage from their uses elsewhere. The chosen `type`, however, is very
@@ -256,20 +259,20 @@ Naming rules
 ```haskell
 -- OLD SYNTAX --
 
-class Point:
-    x, y, z :: Real
+class Point a:
+    x, y, z :: a
 ```
 
 Let's consider the above code written using old Luna syntax. It defines a new
 class (a new type) and an implicit constructor with the same name as the type.
 
-Currently all types and constructors start with an upper-case letter. This
-approach has one major issue, namely accessing constructors is more complex than
-it should be. The original idea assumes that we can access the constructor using
-qualified name, like `p = Point.Point 1 2 3 :: Point.Point 1 2 3 :: Point`.
-Other ideas proposed generating smart constructors starting with lower-case
-letter, however such named constructors cannot be easily distinguished from free
-variables in pattern expressions.
+Currently all types, including polymorphic ones, start with an upper-case
+letter. This approach has one major issue, namely accessing constructors is more
+complex than it should be. The original idea assumes that we can access the
+constructor using qualified name, like `p = Point.Point 1 2 3 :: Point.Point 1 2
+3 :: Point Int`. Other ideas proposed generating smart constructors starting
+with lower-case letter, however such named constructors cannot be easily
+distinguished from free variables in pattern expressions.
 
 In order to properly solve the problem, let's carefully analyse all needs and
 use cases. If we allow both constructor and type names to start with upper-case
@@ -279,28 +282,28 @@ following one:
 ```haskell
 -- OLD SYNTAX --
 
-type Foo = Int | String
-a = 5 :: Foo
+type Foo t = Point t | String
+a = Point 1 2 3 :: Foo Int
 ```
 
 The pipe (`|`) is an ordinary operator used to join type sets. Based on the
-`{invariant:3}` the following code is correct as well, because we can refactor
+`{invariant:4}` the following code is correct as well, because we can refactor
 every type level expression to a variable:
 
 ```haskell
 -- OLD SYNTAX --
 
-foo = Int | String
-a = 5 :: foo
+foo t = Point t | String
+a = Point 1 2 3 :: foo Int
 ```
 
-Thus, without breaking the invariant we cannot guarantee that all type names
-will start with an upper-case letter.
+Thus, we would need to introduce some special, non-trivial rules to guarantee
+that all type names will start with an upper-case letter.
 
 Even worse, it seems that such syntax allows creating functions named with
 capitalized first letter. The new type alias have to accept any valid type
 level expression, like `type Foo x = if x then Int else String`, so the
-following has to be accepted:
+following has to be accepted as well:
 
 ```haskell
 -- OLD SYNTAX --
@@ -314,8 +317,18 @@ Which clearly shows a flow in the design.
 
 
 ### Proposed solution <!-- omit in toc -->
-The distinction between capitalized and uncapitalized names is often used to
-disambiguate the meaning of entities for the needs of pattern matching.
+The distinction between capitalized and uncapitalized names is used to
+disambiguate the meaning of entities and is crucial for the needs of pattern
+matching.
+
+We propose to introduce the following naming rules:
+
+- All monomorphic types use capitalized names. 
+- All other entities, including polymorphic types, are just expressions and thus
+  use uncapitalized names.
+
+
+
 
 In Luna the entities which we want to distinguish for the needs of pattern
 matching are constructors. All the other entities, including set types are just
@@ -473,7 +486,7 @@ def test:
 ```haskell
 -- NEW SYNTAX -- 
 
-test : Text in IO
+test : text in IO
 test =
     mkMsg s = s + '!' 
     print 'Whats your name?'
@@ -483,6 +496,152 @@ test =
 
 
 ### Named arguments
+
+Every part of language, which affects how data could be accessed or modified
+have to expressible on type level. For example, interfaces have to allow
+declaring that some of function's parameters are named or provided with a
+default value.
+
+Assuming that the arrow operator (`->`) is just a normal operator, not some
+deeply magical symbol, then based on `{invariant:4}` the following code has to 
+be accepted:
+
+```haskell
+a : x -> y -> z
+a = x -> y -> z
+```
+
+Which consequently makes the following usage invalid:
+
+```haskell
+-- INVALID --
+sum : int -> int -> int
+sum a b = a + b
+```
+
+Moreover, the following code is valid:
+
+```haskell
+sum : (a : int) -> (b : int) -> (a + b : int)
+sum (a : int) (b : int) = a + b
+```
+
+
+Let's consider now how sub-typing in the Luna sense works for functions. In
+order to get some intuition, visualize the left hand side just as a set
+transformation to other set, as every possible arrow from one set to other set.
+Such transformation is a sub-type of every transformation that contains all the
+arrows, in particular the following expressions are valid:
+
+```haskell
+(nat -> string) : (int -> string)
+(nat -> nat -> string) : (int -> int -> string)
+(int -> nat) : (int -> int)
+```
+
+After thinking for a while about it, the rules are rather straightforward.
+Moreover, Luna allows typing an expression using any supertype, for example we
+are allowed to type `0 : int` or `Vector 1 2 3 : vector int`. Thus, each of the
+following definitions is valid (see type-patterns construction): 
+
+```haskell
+sum : (a : int) -> (b : int) -> (a + b : int)
+sum (a : int) (b : int) = a + b
+
+sum : type int -> type int -> int
+sum (a : int) (b : int) = a + b
+```
+
+Please note that in the above example the `type int` is a pattern which means
+that it is a set-type `int` which is either named or unnamed. It does NOT mean 
+that it is an unnamed function, otherwise the above sub-typing rules will not be
+met. 
+
+Few potential solutions emerge:
+
+#### Special unnamed type provider syntax
+We could introduce a special syntax, which just automatically drops all names in
+patterns (it works just like type-case construction), lets define it as `::`
+operator. Then the following would then be valid:
+
+```haskell
+sum :: int -> int -> int
+sum a b = a + b
+```
+
+#### Special unnamed type provider syntax 2
+This idea is almost the same as previous, but we swap `:` with `::`. In such 
+case we will use `:` almost always, including:
+
+```haskell
+foo : int
+foo = 5
+
+sum : int -> int -> int
+sum a b = a + b
+```
+
+And we would use `::` only in interfaces when we will provide names explicitly, 
+like:
+
+```haskell
+type SomeIface
+    foo :: x : int -> y : int -> int
+```
+
+It's worth to note that such construct would be very rare. In fact I don't
+believe it would be ever used in real code, because it just defines interface of
+a function containing two named arguments in a particular order. Thus maybe it
+would be possible to find a syntax which just tells that we've got named
+arguments in an undefined order and use it with the `:` operator then (keeping
+all the assumptions from this point valid)?
+
+
+#### Special arrows
+Another solution would be to introduce two types of arrows - named `->` and unnamed `=>` (or vice versa), thus the following code would be valid:
+
+```haskell
+foo : (x : int) -> (y : int) -> int
+foo x y = x + y
+
+bar : int => int => int
+bar x y = x + y
+```
+
+
+
+
+
+
+Which has almost all information duplicated and is just equivalent to:
+
+```haskell
+sum (a : int) (b : int) = a + b
+```
+
+
+Assuming that on the left side of the arrow there is just standard pattern 
+expression, both `x` and `y` are names, while `z` is the result.
+
+
+foo (x : int) (y : int) (z : int) = ...
+
+foo = x : int -> y : int -> z : int -> ...
+
+foo : int -> int -> int
+foo x y z = ...
+
+
+foo : x -> y -> ...
+foo = x -> y -> ...
+
+foo : a -> a -> a -> ...
+foo = x -> y -> z -> ...
+
+foo : (x : int) -> (y : int) -> (z : int) -> ...
+foo x y z = ...
+
+
 ### Default arguments
 
 
@@ -497,7 +656,7 @@ def foo a = a + 1
 ```
 
 The problem with the definition is that the type level symbol `->` does not have
-any value level counterpart, which breaks the `{invariant:3}`. We can of course
+any value level counterpart, which breaks the `{invariant:4}`. We can of course
 assume that it is a special syntax for a "function signature" constructor, but
 then its unnecessarily magical. Moreover, what value could have an expression 
 which type would be expressed as `a : a + 1`?
@@ -1382,4 +1541,236 @@ the current time. Some examples include:
   pattern matching.
 - We definitely need further discussion on nested types.
 - Some syntax can likely be cleaned up.
+
+
+
+
+
+
+
+
+# Appendix
+
+## Choosing the right syntax
+
+In order to choose the best syntactic rules, let's analyse how they are
+connected with each other and how particular choices affect the rest of the
+syntax. The following syntax elements are very tightly connected and thus we
+will be checking how our choices affect each of them separately.
+
+1. **Function definition**
+   Function definitions need to be easy to use and consistent with all other
+   choices.
+   ```haskell
+   foo : Int -> Int -> Int
+   foo a b: a + b
+   ```
+
+2. **Irrefutable pattern matches**  
+   We need to be able to deconstruct objects in-line, without full case
+   expressions.
+   ```haskell
+   Point a           = t -- set type pattern matching
+   Point.Point x y z = t -- constructor pattern matching
+   ```
+
+3. **Value creation**  
+   We need to be able to easily distinguish constructor and type names
+   ```haskell
+   t = Point.Point 1 2 3 : Pint.Point 1 2 3
+   ```
+
+4. **Function signatures**  
+   We need a way to define nice and concise function signatures. Especially 
+   we need a clear way to define a super-type of a function in a simple and 
+   readable way.
+   ```haskell
+    type MyType = Int | Text
+
+    foo : MyType -> MyType -> MyType
+    foo : (x : MyType) -> (y : MyType) -> (x + y : MyType)
+    foo x y = x + y
+
+    bar : Point a -> Point a -> Point a
+    bar p1 p2 = p1 + p2
+    ```
+
+
+#### Solution 1: Capitalized constructors
+The rules are simple. Constructor names are capitalized, while everything else 
+is just an expression label and thus uses uncapitalized names.
+
+```haskell
+-- 1 --
+foo a b : a + b -- OK
+
+-- 2 --
+type point a = t -- OK. Just a little bit ugly (rarely used).
+Point x y z  = t -- OK.
+
+-- 3 --
+t = Point 1 2 3 : point Int -- OK.
+
+-- 4 --
+myType = Int | String
+
+foo : type myType -> type myType -> type myType -- Option 1. WRONG. Ugly
+foo : myType -> myType -> myType                -- Option 2. WRONG. (a) 
+-- (a): Will be OK if free variables could be aliased with names from scope
+--      but then it is very error prone.
+
+bar : point a -> point a -> point a -- OK, but Inconsistent with irrefutable 
+                                    -- syntax.
+```
+
+There is no clear way how to express signatures of a function in a clear and not 
+ambiguous way using this syntax.
+
+
+#### Solution 2: Capitalized monomorphic types
+The rules are also simple. All values whose type is `Type` use capitalized
+names, while everything else is just an expression label and thus uses
+uncapitalized names.
+
+```haskell
+-- 1 --
+foo a b : a + b -- OK
+
+-- 2 --
+type point a = t -- OK, but ugly (rarely used)
+Point x y z  = t -- OK.
+
+-- 3 --
+t = Point 1 2 3 : point Int -- OK.
+
+-- 4 --
+MyType = Int | String
+
+foo : MyType -> MyType -> MyType    -- OK.
+bar : point a -> point a -> point a -- OK, but Inconsistent with irrefutable 
+                                    -- syntax.
+```
+
+This syntax seems ok, however it introduces some inconsistency. We can use clean
+form of pattern matching in function signatures, however while defining
+irrefutable patterns we need some additional keyword to indicate that it is not
+a function definition. 
+
+
+#### Solution 2.1. Capitalized functions whose final value is a type
+All values whose type is either `Type` or is a function with final value of type
+`Type` (e.g. `a -> b -> (c : Type)`) is capitalized. This proposition solves all
+ambiguity described earlier, but it's not clear if we can easily enforce the
+rule. Discovering the final type, especially in polymorphic functions is often
+impossible, so it could be possible to define an uncapitalized function, which
+would break the rule after passing some values. Moreover this solution
+introduces brings back constructor - type names conflict to scope.
+
+```haskell
+-- 1 --
+foo a b : a + b -- OK
+
+-- 2 --
+Point a           = t -- OK
+Point.Point x y z = t -- WRONG.
+
+-- 3 --
+t = Point.Point 1 2 3 : Point Int -- WRONG. (We revert to constructor naming
+                                  -- problem here) 
+
+-- 4 --
+MyType = Int | String
+
+foo : MyType -> MyType -> MyType    -- OK.
+bar : Point a -> Point a -> Point a -- OK.
+```
+
+
+#### Solution 2.2. Capitalized monomorphic types, new function syntax
+This solution is an evolution of solution 2. It makes the whole syntax much more
+consistent just by simplifying the semantics of the assignment expression. Until
+now, the assignment semantics could be expressed as:
+
+1. Variable assignment (special case of pattern matching)  
+   `(uncapitalized identifier) = value`
+2. Constructor pattern matching  
+   `(capitalized identifier) (args) = value`
+3. Set type pattern matching  
+   `type (uncapitalized identifier) (args) = value`
+4. Function definition  
+   `(uncapitalized identifier) (args) = value`
+
+Since Luna allows mixing values and types and we allow using arbitrary
+expressions on type level, we either need a form of pattern matching as
+described in point 3 or we need to introduce complex naming rules (as described
+earlier).
+
+We can simplify all of the above cases to just single one if we remove the
+special case of function definition. The syntax `foo a b = ...` was introduced
+by Haskell because it was not used by other syntax forms - Haskell allows
+pattern matching on constructors (2) or variables (1) only. If we change the
+function definition syntax, we can redefine assignment rules just to:
+
+```haskell
+pattern = value
+```
+
+Let's see how it affects all the constructs.
+
+```haskell
+-- 1 --
+foo = a -> b -> a + b -- Option 1. OK.
+foo = a b => a + b    -- Option 2. OK. (shorter form for multi arg lambda)
+
+-- 2 --
+point a     = t -- OK.
+Point x y z = t -- OK.
+
+-- 3 -- 
+t = Point 1 2 3 : point Int -- OK.
+
+-- 4
+MyType = Int | String
+
+foo : MyType -> MyType -> MyType    -- OK.
+bar : point a -> point a -> point a -- OK.
+```
+
+So far this is the only solution which does not introduce any ambiguity and is
+consistent. However it makes function definition a little more verbose, which
+could be considered bad thing. On the other hand, function and lambda
+definitions are using now the same syntax and are thus even simpler to
+understand and learn. Moreover, while testing this solution it appears that the
+code is only sometimes slightly longer, while maintaining the same or better
+readability. 
+
+
+#### Solution 3. Capitalized matches
+This is a controversial proposal, which assumes that no matter if we use upper
+or lower first identifier letter, we are referring to the same value. This way
+we can use capitalized names in pattern matches and signatures to disambiguate
+which names are free variables. 
+
+```haskell
+-- 1 -- 
+-- unrelated 
+
+-- 2 ---
+Point a           = t -- OK.
+Point.Point x y z = t -- WRONG. (Since "point" = "Point")
+
+-- 3 --
+t = Point.Point 1 2 3 : Point Int -- WRONG.
+
+-- 4 --
+myType = Int | String
+
+foo : MyType -> MyType -> MyType    -- OK.
+bar : Point a -> Point a -> Point a -- OK.
+bar : Point a -> Point a -> point a -- WRONG. It means the same as ^^^
+                                    -- so we've got 2 ways to express the same
+                                    -- thing.
+```
+
+
 
