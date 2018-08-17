@@ -1,3 +1,199 @@
+NOT WORKING!!!
+
+
+
+type Vector x y z
+vector = Vector Int Int Int
+
+Vector x y z = foo bar
+vector       = foo bar
+
+
+type Vector
+    type V3
+        x : Int
+        y : Int
+        z : Int
+
+
+case foo bar of
+    Vector            -> ...
+    Vector.Cons x y z -> ...
+
+
+t = Vector.Cons x y z
+
+
+
+
+vector = a -> type 
+    type Vector
+        x : a 
+        y : a 
+        z : a
+    
+
+
+type Vector x y z
+vector = a -> Vector a a a
+
+(vector a).length = ...
+
+
+-------------------
+
+komentarze: 
+
+foo #= a -> b ->
+    ...
+
+foo #= bar 100 50
+
+foo #= bar.baz 11
+
+
+
+aplikacje argumentow:
+
+foo 1 2 3
+
+to samo co :
+
+foo <- 1 <- 2 <- 3
+
+w ten sposob mozna nowe linijki kontynuowac:
+
+foo bar baz dlugie rozne argumenty
+    <- bax bax2 bax3
+
+
+----------------------
+
+what is the difference between just types and types - modules ? 
+types mean set of constructors and they are also interfaces that their elements
+have to match, so:
+
+```haskell
+
+type Math 
+
+    type Int
+        ...
+
+    foo : ...
+```
+
+Here, `foo` is meant to be module function, `Int` should not have it. 
+
+Possible solution1.
+We assume that a type is:
+    - a set of elements 
+    - interface the elements have to match 
+    - a set of other sets (types), which are independent from the interface
+
+This way: 
+
+```haskell
+type Vector
+    data V3 
+        x : Int
+        y : Int
+        z : Int
+    
+    type Internal 
+        data InternalData
+
+        foo : ...
+
+    v3test : ...
+```
+
+the `v3test` is method of `V3` but NOT of `Internal` nor `InternalData`.
+
+
+However this model is strange, because normally we've got sets. These sets 
+contain elements and other sets which are subsets (!). This model assumes that
+sets have reference to completely unrelated sets.
+
+Using other words, it means that `type` is no longer a set of behavior and elements.
+It is set of behavior, elements and separate set of "references" to other sets.
+
+It could be actually ok if we think about it this way: the set Math contains some
+subsets like Int or Vector. It does NOT have any methods as interface. It provides, 
+however, a data `Math.Math` (or whatever its called) which has some associated methods
+and they are not descirbed in any interface, especially not in the one containing `Int` etc.
+This is sound, but its not what the syntax tells, or it is?
+
+
+```haskell
+data MathCons
+
+MathCons.foo : ...
+MathCons.foo = ...
+
+
+type Int
+    ...
+
+
+type Math
+    include MathCons
+    include Int
+
+```
+
+What is the correct syntax? How can we define set with subsets and their common interface? 
+Do we really want to do it?
+
+
+----------------------
+
+
+type Foo
+    foo : Int -> Int
+    bar : Int -> Int
+
+
+type Bar 
+    foo = a -> a + 1
+    bar = a -> a + 1
+
+
+
+
+
+a = Bar
+
+b = a.foo = a -> a + 2
+
+b : Bar -- NO!
+
+--> w jaki sposob podac w typie zarowno sygnature jak i implementacje tak by bylo
+    to podmienialne i by implementacja byla defaultowa ? 
+
+
+
+Tak ?
+type Foo 
+    x : Int = 0
+
+    foo : Int -> Int
+        = ... 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ___
 - **Feature Name:** Syntax Overhaul
 - **Start Date:** 2018-06-26
@@ -1577,7 +1773,7 @@ will be checking how our choices affect each of them separately.
 3. **Value creation**  
    We need to be able to easily distinguish constructor and type names
    ```haskell
-   t = Point.Point 1 2 3 : Pint.Point 1 2 3
+   t = Point.Point 1 2 3 : Point.Point 1 2 3
    ```
 
 4. **Function signatures**  
@@ -1770,6 +1966,27 @@ bar : Point a -> Point a -> Point a -- OK.
 bar : Point a -> Point a -> point a -- WRONG. It means the same as ^^^
                                     -- so we've got 2 ways to express the same
                                     -- thing.
+```
+
+
+
+
+
+
+
+```haskell
+
+sphere = radius = 1 -> position = Point 0 0 0 -> ... 
+
+sphere (radius = 8) (position = Point 1 2 3)
+
+shape1 = sphere 
+    radius   = 8 
+    position = Point 1 2 3
+
+
+-- = Point 0 0 0
+-- = 1
 ```
 
 
