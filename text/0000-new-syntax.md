@@ -1930,6 +1930,9 @@ MyType = Int | String
 
 foo : MyType -> MyType -> MyType    -- OK.
 bar : point a -> point a -> point a -- OK.
+
+-- Defaulting and naming, even the return parameter can be named
+myInterfaceFn : (a = 1 : Real) -> (b : MyType) -> (c : MyType) 
 ```
 
 So far this is the only solution which does not introduce any ambiguity and is
